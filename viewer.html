@@ -27,6 +27,8 @@
             async function loadPDF() {
                 doc = await pdfjsLib.getDocument(url).promise;
                 console.log('pdf loaded!!!');
+                // update total page count
+                document.getElementById('page-count').innerHTML = doc.numPages;
                 await renderPage(1);
             }
 
@@ -46,6 +48,9 @@
                 // render the page.. ctx (toolkit to draw) and viewport(what size)
                 await page.render({canvasContext:ctx, viewport:viewport}).promise;
 
+                // update page-num
+                document.getElementById('page-num').innerHTML = num;
+                
                 // enable them when done
                 document.getElementById('prev').disabled = false;
                 document.getElementById('next').disabled = false;
