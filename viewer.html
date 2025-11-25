@@ -22,28 +22,57 @@
 
             const url = 'sample.pdf';
             let doc = null;
+            let pnum = 1;
 
             async function loadPDF() {
                 doc = await pdfjsLib.getDocument(url).promise;
-                console.log('pdf loaded!!!')
-                const page = await doc.getPage(1);
+                console.log('pdf loaded!!!');
+                await renderPage(1);
+            }
 
+            async function renderPage(num) {
+                // disable buttons while rendering
+                document.getElementById('prev').disabled = true;
+                document.getElementById('next').disabled = true;
+                
+                const page = await doc.getPage(num);
                 const canvas = document.getElementById('pdf-canvas');
                 // context is our toolkit - we give it instructions to draw
                 const ctx = canvas.getContext('2d')
-
                 // get page dims and make it 1.5x bigger 
                 const viewport = page.getViewport({scale: 1.5});
                 // set canvas size to match it
                 canvas.height=viewport.height; canvas.width=viewport.width;
-
                 // render the page.. ctx (toolkit to draw) and viewport(what size)
                 await page.render({canvasContext:ctx, viewport:viewport}).promise;
-                
+
+                // enable them when done
+                document.getElementById('prev').disabled = false;
+                document.getElementById('next').disabled = false;
+
             }
 
+            // add click handler to buttons
+            document.getElementById('next').addEventListener('click', function() {
+                if (pnum < doc.numPages) {
+                    pnum = pnum + 1;
+                    renderPage(pnum);
+                }
+
+            });
+
+            document.getElementById('prev').addEventListener('click', function (){
+                if (pnum > 1){
+                    pnum = pnum - 1;
+                    renderPage(pnum);        
+                }
+
+            })
+
+
+
             loadPDF();
-            
+
         </script>
     </body>
 </html>
