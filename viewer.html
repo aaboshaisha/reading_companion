@@ -8,12 +8,22 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
 
         <style>
-            #pdf-container { position: relative;}
+            #pdf-container { position: relative; }
             #text-layer {
                 position: absolute; left:0; top:0;
             }
 
             #toolbar { display:flex; gap:50px;}
+            
+            #main-container {
+                display: flex;
+                min-height: 80vh;
+            }
+
+            #chat-container { width: 300px; }
+            #chat-messages { max-height: 400px; overflow-y: auto; }
+
+
         </style>
     </head>
     <body>
@@ -32,13 +42,22 @@
 
         </div>
 
-        <!-- add container to have both canvas and text layer for selection -->
-        <div id='pdf-container'>
-            <canvas id='pdf-canvas'></canvas>
-            <!-- textLayer is a pdfjs class that handles text positioning, scaling, and overlay on canvas for selection/search -->
-            <div id='text-layer' class='textLayer'></div>
-        </div>
+        <main id='main-container'>
 
+            <!-- add container to have both canvas and text layer for selection -->
+            <div id='pdf-container'>
+                <canvas id='pdf-canvas'></canvas>
+                <!-- textLayer is a pdfjs class that handles text positioning, scaling, and overlay on canvas for selection/search -->
+                <div id='text-layer' class='textLayer'></div>
+            </div>
+
+            <div id='chat-container'>
+                <div id='chat-messages'></div>
+                <textarea id='chat-input' placeholder='Ask anything'></textarea>
+                <button id='send-btn'>Send</button>
+            </div>
+
+        </main>
 
 
         <script>
@@ -134,10 +153,18 @@
             })
 
 
+            // send selection to input area
+            document.addEventListener('keydown', function(e){
+                if (e.shiftKey && e.key == 'Enter') {
+                    const selection = window.getSelection().toString();
+                    document.getElementById('chat-input').value += '""""' + selection + '""""';
+                }
+            })
+
 
 
             loadPDF();
 
         </script>
     </body>
-</html>
+    </html>
