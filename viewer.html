@@ -12,15 +12,24 @@
             #text-layer {
                 position: absolute; left:0; top:0;
             }
+
+            #toolbar { display:flex; gap:50px;}
         </style>
     </head>
     <body>
-        <div>
-            <button id='prev'>Previous</button>
-            <span>Page:
-                <span id='page-num'></span> / <span id='page-count'></span>
-            </span>
-            <button id='next'>Next</button>
+        <div id='toolbar'>
+            <div>
+                <button id='prev'>Previous</button>
+                <span>
+                    <span id='page-num'></span> / <span id='page-count'></span>
+                </span>
+                <button id='next'>Next</button>
+            </div>
+
+            <div>
+                <button id='zoom-in'>+</button> | <button id='zoom-out'>-</button>
+            </div>
+
         </div>
 
         <!-- add container to have both canvas and text layer for selection -->
@@ -31,7 +40,7 @@
         </div>
 
 
-        
+
         <script>
             // the worker runs heavy processing in separate thread (to keep page responsive)
             // tell pdfjs where worker file is
@@ -40,19 +49,22 @@
             const url = 'sample.pdf';
             let doc = null;
             let pnum = 1;
+            let scale = 1.5;
 
             async function loadPDF() {
                 doc = await pdfjsLib.getDocument(url).promise;
                 console.log('pdf loaded!!!');
                 // update total page count
                 document.getElementById('page-count').innerHTML = doc.numPages;
-                await renderPage(1);
+                await renderPage(1, scale);
             }
 
-            async function renderPage(num) {
+            async function renderPage(num, scale) {
                 // disable buttons while rendering
                 document.getElementById('prev').disabled = true;
                 document.getElementById('next').disabled = true;
+                document.getElementById('zoom-in').disabled = true;
+                document.getElementById('zoom-out').disabled = true;
 
                 const page = await doc.getPage(num);
                 // extracts all the text from the page along with positioning information for each character/word.
@@ -65,7 +77,7 @@
                 // context is our toolkit - we give it instructions to draw
                 const ctx = canvas.getContext('2d')
                 // get page dims and make it 1.5x bigger 
-                const viewport = page.getViewport({scale: 1.5});
+                const viewport = page.getViewport({scale: scale});
                 // set canvas size to match it
                 canvas.height=viewport.height; canvas.width=viewport.width;
                 // render the page.. ctx (toolkit to draw) and viewport(what size)
@@ -75,13 +87,15 @@
 
                 // render text layer
                 pdfjsLib.renderTextLayer({ textContentSource: text, container: textDiv, viewport: viewport });
-                
+
                 // update page-num
                 document.getElementById('page-num').innerHTML = num;
 
                 // enable them when done
                 document.getElementById('prev').disabled = false;
                 document.getElementById('next').disabled = false;
+                document.getElementById('zoom-in').disabled = false;
+                document.getElementById('zoom-out').disabled = false;
 
             }
 
@@ -89,7 +103,7 @@
             document.getElementById('next').addEventListener('click', function() {
                 if (pnum < doc.numPages) {
                     pnum = pnum + 1;
-                    renderPage(pnum);
+                    renderPage(pnum, scale);
                 }
 
             });
@@ -97,10 +111,28 @@
             document.getElementById('prev').addEventListener('click', function (){
                 if (pnum > 1){
                     pnum = pnum - 1;
-                    renderPage(pnum);        
+                    renderPage(pnum, scale);        
                 }
 
             })
+
+
+            document.getElementById('zoom-in').addEventListener('click', function() {
+                if (scale < 4.0){
+                    scale = scale + 0.25;
+                    renderPage(pnum, scale); 
+                }
+
+            })
+
+            document.getElementById('zoom-out').addEventListener('click', function() {
+                if (scale > 0.35) {
+                    scale = scale - 0.25;
+                    renderPage(pnum, scale);
+                }
+
+            })
+
 
 
 
