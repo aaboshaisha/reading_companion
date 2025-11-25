@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Viewer</title>
+        <!-- the core library that parses the pdf -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    </head>
+    <body>
+        <div>
+            <button id='prev'>Previous</button>
+            <span>Page:
+                <span id='page-num'></span> / <span id='page-count'></span>
+            </span>
+            <button id='next'>Next</button>
+        </div>
+        <canvas id='pdf-canvas'></canvas>
+
+        <script>
+            // the worker runs heavy processing in separate thread (to keep page responsive)
+            // tell pdfjs where worker file is
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+            const url = 'sample.pdf';
+            let doc = null;
+
+            async function loadPDF() {
+                doc = await pdfjsLib.getDocument(url).promise;
+                console.log('pdf loaded!!!')
+            }
+
+            loadPDF();
+            
+        </script>
+    </body>
+</html>
