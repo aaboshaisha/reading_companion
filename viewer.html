@@ -4,6 +4,15 @@
         <title>Viewer</title>
         <!-- the core library that parses the pdf -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+        <!-- helper class to render text content onto text layer div -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
+
+        <style>
+            #pdf-container { position: relative;}
+            #text-layer {
+                position: absolute; left:0; top:0;
+            }
+        </style>
     </head>
     <body>
         <div>
@@ -13,8 +22,16 @@
             </span>
             <button id='next'>Next</button>
         </div>
-        <canvas id='pdf-canvas'></canvas>
 
+        <!-- add container to have both canvas and text layer for selection -->
+        <div id='pdf-container'>
+            <canvas id='pdf-canvas'></canvas>
+            <!-- textLayer is a pdfjs class that handles text positioning, scaling, and overlay on canvas for selection/search -->
+            <div id='text-layer' class='textLayer'></div>
+        </div>
+
+
+        
         <script>
             // the worker runs heavy processing in separate thread (to keep page responsive)
             // tell pdfjs where worker file is
@@ -36,8 +53,14 @@
                 // disable buttons while rendering
                 document.getElementById('prev').disabled = true;
                 document.getElementById('next').disabled = true;
-                
+
                 const page = await doc.getPage(num);
+                // extracts all the text from the page along with positioning information for each character/word.
+                const text = await page.getTextContent();
+                const textDiv = document.getElementById('text-layer');
+                textDiv.innerHTML = ''; // clear prev text
+
+
                 const canvas = document.getElementById('pdf-canvas');
                 // context is our toolkit - we give it instructions to draw
                 const ctx = canvas.getContext('2d')
@@ -48,9 +71,14 @@
                 // render the page.. ctx (toolkit to draw) and viewport(what size)
                 await page.render({canvasContext:ctx, viewport:viewport}).promise;
 
+                document.getElementById('pdf-container').style.setProperty('--scale-factor', viewport.scale);
+
+                // render text layer
+                pdfjsLib.renderTextLayer({ textContentSource: text, container: textDiv, viewport: viewport });
+                
                 // update page-num
                 document.getElementById('page-num').innerHTML = num;
-                
+
                 // enable them when done
                 document.getElementById('prev').disabled = false;
                 document.getElementById('next').disabled = false;
