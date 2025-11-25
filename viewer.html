@@ -26,6 +26,20 @@
             async function loadPDF() {
                 doc = await pdfjsLib.getDocument(url).promise;
                 console.log('pdf loaded!!!')
+                const page = await doc.getPage(1);
+
+                const canvas = document.getElementById('pdf-canvas');
+                // context is our toolkit - we give it instructions to draw
+                const ctx = canvas.getContext('2d')
+
+                // get page dims and make it 1.5x bigger 
+                const viewport = page.getViewport({scale: 1.5});
+                // set canvas size to match it
+                canvas.height=viewport.height; canvas.width=viewport.width;
+
+                // render the page.. ctx (toolkit to draw) and viewport(what size)
+                await page.render({canvasContext:ctx, viewport:viewport}).promise;
+                
             }
 
             loadPDF();
