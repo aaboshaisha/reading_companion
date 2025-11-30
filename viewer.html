@@ -8,7 +8,7 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
 
         <style>
-            #pdf-container { position: relative; }
+            #pdf-container { position: relative; flex:1;}
             #text-layer { position: absolute; left:0; top:0; }
             #toolbar { display:flex; gap:50px;}
             #main-container { display: flex; min-height: 80vh; }
@@ -32,6 +32,7 @@
 
             <div><button id='zoom-in'>+</button> | <button id='zoom-out'>-</button></div>
 
+            <div><button id='set-key-btn'>Set API key</div>
         </div>
 
         <main id='main-container'>
@@ -188,12 +189,19 @@
             });
 
 
+            // show / hide api key input
+            const apiDiv = document.getElementById('api-container');
+            document.getElementById('set-key-btn').addEventListener('click', function () {
+                if (apiDiv.style.display == 'none') { apiDiv.style.display = 'block'; }
+                else { apiDiv.style.display = 'none';}
+            });
+
             // Add messages
             function updateMessages(msg) {
                 const msgs = document.getElementById('msgs');
                 msgs.innerHTML += '<div>' + msg + '</div>';
             }
-            
+
             // API CALLS
             document.getElementById('send-msg').addEventListener('click', async function() {
                 const chatInput = document.getElementById('chat-input');
