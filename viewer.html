@@ -14,9 +14,8 @@
             #main-container { display: flex; min-height: 80vh; }
             #chat-container { width: 300px; }
             #chat-messages { max-height: 400px; overflow-y: auto; }
-
-
         </style>
+        
     </head>
     <body>
         <div id='toolbar'>
@@ -40,7 +39,7 @@
             <!-- add container to have both canvas and text layer for selection -->
             <div id='pdf-container'>
                 <canvas id='pdf-canvas'></canvas>
-                <!-- textLayer is a pdfjs class that handles text positioning, scaling, and overlay on canvas for selection/search -->
+                <!-- textLayer: a pdfjs class that handles text positioning, scaling, and overlay on canvas for selection/search -->
                 <div id='text-layer' class='textLayer'></div>
             </div>
 
@@ -209,7 +208,7 @@
                 chatInput.value = '';
                 updateMessages(userMsg);
                 const botMsg = await getResponse(userMsg);
-                updateMessages(botMsg);
+                if (botMsg) {updateMessages(botMsg);} 
             });
 
 
@@ -234,10 +233,22 @@
 
             async function getResponse(userMsg) {
                 const api_key = localStorage.getItem('apiKey');
+                if (!api_key){ alert('Please enter api key first!'); return; }
+                
                 const url = 'https://api.deepseek.com/chat/completions';
-                const response = await fetch(url, configOptions(api_key, userMsg));
-                const data = await response.json(); // response JSON string to JS object
-                return data.choices[0].message.content;
+                try {
+                    const response = await fetch(url, configOptions(api_key, userMsg));
+                    if (!response.ok){ 
+                        throw new Error('API error: ' + response.status); 
+                    }
+                    const data = await response.json(); // response JSON string to JS object
+                    return data.choices[0].message.content;
+                } catch (error){ 
+                    alert(error);
+                    
+                    // userInput = document
+                    return;
+                }
             }
 
 
