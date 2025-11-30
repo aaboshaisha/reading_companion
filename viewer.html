@@ -20,10 +20,8 @@
     </head>
     <body>
         <div id='toolbar'>
-            <div>
-                <input type='file' id='open-pdf' accept='.pdf'>
-            </div>
-                
+            <div><input type='file' id='open-pdf' accept='.pdf'></div>
+
             <div>
                 <button id='prev'>Previous</button>
                 <span>
@@ -32,9 +30,7 @@
                 <button id='next'>Next</button>
             </div>
 
-            <div>
-                <button id='zoom-in'>+</button> | <button id='zoom-out'>-</button>
-            </div>
+            <div><button id='zoom-in'>+</button> | <button id='zoom-out'>-</button></div>
 
         </div>
 
@@ -48,9 +44,17 @@
             </div>
 
             <div id='chat-container'>
+
+                <div id='api-container' style='margin-top:10px; margin-bottom:10px;'>
+                    <input type='text' id='api-key' placeholder='Enter API key'>
+                    <button id='save-key'>Save Key</button>
+                </div>
+
+                <div id='msgs'></div>
+
                 <div id='chat-messages'></div>
                 <textarea id='chat-input' placeholder='Ask anything (Shift + Enter to add selection)'></textarea>
-                <button id='send-btn'>Send</button>
+                <button id='send-msg'>Send</button>
             </div>
 
         </main>
@@ -66,6 +70,12 @@
             let pnum = 1;
             let scale = 1.5;
 
+            // load api key if already saved
+            const savedKey = localStorage.getItem('apiKey');
+            if (savedKey) {
+                // alert('Loaded saved API key!');
+                console.log('Loaded saved API key!');
+            }
 
             function disableButtons(disabled) {
                 const buttons = ['prev', 'next', 'zoom-in', 'zoom-out'];
@@ -73,7 +83,7 @@
                     document.getElementById(id).disabled = disabled;
                 }
             }
-            
+
             async function renderPage(num, scale) {
                 // disable buttons while rendering
                 disableButtons(true);
@@ -122,7 +132,7 @@
                     renderPage(pnum, scale);        
                 }
 
-            })
+            });
 
 
             document.getElementById('zoom-in').addEventListener('click', function() {
@@ -131,7 +141,7 @@
                     renderPage(pnum, scale); 
                 }
 
-            })
+            });
 
             document.getElementById('zoom-out').addEventListener('click', function() {
                 if (scale > 0.35) {
@@ -139,7 +149,7 @@
                     renderPage(pnum, scale);
                 }
 
-            })
+            });
 
 
             // send selection to input area
@@ -148,7 +158,7 @@
                     const selection = window.getSelection().toString();
                     document.getElementById('chat-input').value += '""""' + selection + '""""';
                 }
-            })
+            });
 
 
             document.getElementById('open-pdf').addEventListener('change', function(e){
@@ -166,9 +176,59 @@
                     await renderPage(1, scale);
                 }
                 fileReader.readAsArrayBuffer(file);
-            })
+            });
+
+
+            // saving api key
+            document.getElementById('save-key').addEventListener('click', function () {
+                const key = document.getElementById('api-key').value;
+                localStorage.setItem('apiKey', key);
+                alert('Key saved!')
+            });
+
+            // API CALLS
+            document.getElementById('send-msg').addEventListener('click', function() {
+                const chatInput = document.getElementById('chat-input');
+                const userMsg = chatInput.value;
+                chatInput.value = '';
+                const msgs = document.getElementById('msgs');
+                msgs.innerHTML += '<div>' + userMsg + '</div>';
+                call(userMsg);
+            });
+
+
+            function configOptions(apiKey, msg) {
+                return {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            {role: 'system', content: 'You are a helpful assistant'},
+                            {role: 'user', content: msg}
+                        ],
+                        model: 'deepseek-chat', max_tokens: 4096, temperature: 1
+                    })
+                };
+            }
+
+
+            async function call(userMsg) {
+                const api_key = localStorage.getItem('apiKey');
+                const url = 'https://api.deepseek.com/chat/completions';
+                const response = await fetch(url, configOptions(api_key, userMsg));
+                const data = await response.json(); // response JSON string to JS object
+                const botMsg = data.choices[0].message.content;
+                console.log(botMsg);
+                return botMsg;
+            }
+
+
 
 
         </script>
     </body>
-    </html>
+</html>
