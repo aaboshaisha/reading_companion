@@ -15,7 +15,7 @@
             #chat-container { width: 300px; }
             #chat-messages { max-height: 400px; overflow-y: auto; }
         </style>
-        
+
     </head>
     <body>
         <div id='toolbar'>
@@ -55,6 +55,7 @@
                 <div id='chat-messages'></div>
                 <textarea id='chat-input' placeholder='Ask anything (Shift + Enter to add selection)'></textarea>
                 <button id='send-msg'>Send</button>
+                <button id='edit-last'>Edit Last</button>
             </div>
 
         </main>
@@ -234,7 +235,7 @@
             async function getResponse(userMsg) {
                 const api_key = localStorage.getItem('apiKey');
                 if (!api_key){ alert('Please enter api key first!'); return; }
-                
+
                 const url = 'https://api.deepseek.com/chat/completions';
                 try {
                     const response = await fetch(url, configOptions(api_key, userMsg));
@@ -252,6 +253,17 @@
                     return;
                 }
             }
+
+            // edit last user message
+            document.getElementById('edit-last').addEventListener('click', function (){
+                const msgs = document.getElementById('msgs');
+                if (msgs.children.length > 0){
+                    msgs.lastElementChild.remove(); // remove AI response
+                    document.getElementById('chat-input').value = msgs.lastElementChild.textContent;
+                    msgs.lastElementChild.remove(); // remove User message
+                }
+
+            });
 
 
 
