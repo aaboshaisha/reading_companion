@@ -181,9 +181,10 @@
 
             // saving api key
             document.getElementById('save-key').addEventListener('click', function () {
-                const key = document.getElementById('api-key').value;
-                localStorage.setItem('apiKey', key);
-                alert('Key saved!')
+                const keyInput = document.getElementById('api-key');
+                localStorage.setItem('apiKey', keyInput.value);
+                keyInput.value = '';
+                alert('Key saved!');
             });
 
 
