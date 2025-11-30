@@ -186,14 +186,21 @@
                 alert('Key saved!')
             });
 
+
+            // Add messages
+            function updateMessages(msg) {
+                const msgs = document.getElementById('msgs');
+                msgs.innerHTML += '<div>' + msg + '</div>';
+            }
+            
             // API CALLS
-            document.getElementById('send-msg').addEventListener('click', function() {
+            document.getElementById('send-msg').addEventListener('click', async function() {
                 const chatInput = document.getElementById('chat-input');
                 const userMsg = chatInput.value;
                 chatInput.value = '';
-                const msgs = document.getElementById('msgs');
-                msgs.innerHTML += '<div>' + userMsg + '</div>';
-                call(userMsg);
+                updateMessages(userMsg);
+                const botMsg = await getResponse(userMsg);
+                updateMessages(botMsg);
             });
 
 
@@ -216,14 +223,12 @@
             }
 
 
-            async function call(userMsg) {
+            async function getResponse(userMsg) {
                 const api_key = localStorage.getItem('apiKey');
                 const url = 'https://api.deepseek.com/chat/completions';
                 const response = await fetch(url, configOptions(api_key, userMsg));
                 const data = await response.json(); // response JSON string to JS object
-                const botMsg = data.choices[0].message.content;
-                console.log(botMsg);
-                return botMsg;
+                return data.choices[0].message.content;
             }
 
 
