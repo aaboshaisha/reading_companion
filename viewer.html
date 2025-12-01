@@ -177,9 +177,13 @@
             document.getElementById('zoom-in').addEventListener('click', zoomIn);
             document.getElementById('zoom-out').addEventListener('click', zoomOut);
 
-            // File upload
+
+            let currentFileName = null; // we'll need it later to save notes
+            // Open file
             document.getElementById('open-pdf').addEventListener('change', function(e){
                 const file = e.target.files[0];
+                currentFileName = file.name;
+                
                 const fileReader = new FileReader(); // browser api - reads file from user's computer
                 fileReader.onload = async function() {
                     const typedarray = new Uint8Array(this.result);
@@ -382,8 +386,9 @@
                 const jsonStr = JSON.stringify(notesArray);
                 const blob = new Blob([jsonStr], {type:'application/json'});
                 const url = URL.createObjectURL(blob);
+                
                 const a = document.createElement('a');
-                a.href = url; a.download = 'notes.json';
+                a.href = url; a.download = currentFileName + '_notes.json';
                 a.click();
                 URL.revokeObjectURL(url);
             }
