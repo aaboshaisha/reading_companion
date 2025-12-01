@@ -25,6 +25,14 @@
                 border: none;
             }
 
+            .user-msg, .bot-msg { position: relative; }
+            .user-msg button, .bot-msg button {
+                position: absolute;
+                top: 8px; right: 8px;
+                opacity: 0; transition: opacity 0.2s;
+            }
+            .user-msg:hover button, .bot-msg:hover button { opacity: 1; }
+
             #input-wrapper { position: relative; margin-bottom: 8px; }
 
             #chat-input {
@@ -306,7 +314,7 @@
                 msgDiv.className = `${role}-msg`;
                 msgDiv.innerHTML = `
                 <span>${msg}</span>
-                <button class='icon-btn' onclick='deleteMessage(this)'>&#9003;</button>
+                <button class='icon-btn' onclick='deleteMessage(this)'>x</button>
                 `;
                 msgs.appendChild(msgDiv);
             }
