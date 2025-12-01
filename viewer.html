@@ -18,7 +18,12 @@
             #text-layer { position: absolute; left:0; top:0; }
             #main-container { display: flex; min-height: 100vh; }
             #chat-container { width: 300px; background-color:white; border-left: 1px solid #d0d0d0; padding: 15px; }
-            #msgs { max-height: 400px; overflow-y: auto; }
+            #msgs {
+                max-height: 400px;
+                overflow-y: auto; 
+                background-color: transparent;
+                border: none;
+            }
 
             #tab-buttons { display:flex; gap:5px; margin-bottom:15px;}
             #tab-buttons button {
@@ -43,7 +48,9 @@
 
             label.icon-btn { display: inline-block; font-size: 24px; cursor:pointer;}
 
-
+            .user-msg { background-color:white; padding:12px; margin-bottom:8px; border-radius=8px;}
+            .bot-msg { background-color: #f7f7f8; padding: 12px; margin-bottom:8px; border-radius:8px;}
+            
             /* Creates a circle with a colored top border */
             .spinner {
                 border: 4px solid #f3f3f3;
@@ -269,9 +276,10 @@
             });
 
             // Add messages
-            function updateMessages(msg) {
+            function updateMessages(msg, role) {
                 const msgs = document.getElementById('msgs');
                 const msgDiv = document.createElement('div');
+                msgDiv.className = `${role}-msg`;
                 msgDiv.innerHTML = `
                 <span>${msg}</span>
                 <button class='icon-btn' onclick='deleteMessage(this)'>&#9003;</button>
@@ -288,11 +296,11 @@
                 const chatInput = document.getElementById('chat-input');
                 const userMsg = chatInput.value;
                 chatInput.value = '';
-                updateMessages(userMsg);
+                updateMessages(userMsg, 'user');
                 document.getElementById('loading-spinner').style.display = 'block';
                 const botMsg = await getResponse(userMsg);
                 document.getElementById('loading-spinner').style.display = 'none';
-                if (botMsg) { updateMessages(botMsg); }
+                if (botMsg) { updateMessages(botMsg, 'bot'); }
             }
 
             document.getElementById('send-msg').addEventListener('click', sendMessage);
