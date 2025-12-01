@@ -88,7 +88,7 @@
                     <textarea id='note-text' placeholder="Type your notes here..."></textarea>
                     <button id='save-note' class='icon-btn'>&#128190;</button>
 
-                    <button id='download-notes'>Download Note</button>
+                    <button id='download-notes'>Download All</button>
 
                 </div>
             </div>
@@ -201,6 +201,19 @@
                 if (e.shiftKey && e.key == 'Enter') {
                     const selection = window.getSelection().toString();
                     document.getElementById('chat-input').value += '""""' + selection + '""""';
+                }
+            });
+
+            document.addEventListener('keydown', function(e) {
+                // arrow keys for page navigation
+                if (e.key == 'ArrowLeft') { document.getElementById('prev').click(); }
+                else if (e.key == 'ArrowRight') { document.getElementById('next').click();}
+                
+                // Shift + Plus/Minus for zoom
+                if (e.shiftKey && (e.key === '+' || e.key === '=')) {
+                    document.getElementById('zoom-in').click();
+                } else if (e.shiftKey && (e.key === '-' || e.key === '_')) {
+                    document.getElementById('zoom-out').click();
                 }
             });
 
@@ -375,9 +388,10 @@
                 URL.revokeObjectURL(url);
             }
 
+            document.getElementById('download-notes').addEventListener('click', downloadNotes);
 
 
 
         </script>
     </body>
-    </html>
+</html>
