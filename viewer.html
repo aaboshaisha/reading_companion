@@ -13,7 +13,7 @@
             #toolbar { display:flex; gap:50px;}
             #main-container { display: flex; min-height: 80vh; }
             #chat-container { width: 300px; }
-            #chat-messages { max-height: 400px; overflow-y: auto; }
+            #msgs { max-height: 400px; overflow-y: auto; }
 
             /* Creates a circle with a colored top border */
             .spinner {
@@ -72,19 +72,22 @@
                     <button id='notes-tab'>Notes</button>
                 </div>
 
-                <div id='chat-content'><div id='msgs'></div></div>
+                <div id='chat-content'>
+                    <div id='msgs'></div>
+                    <!-- outer div controls visibility, inner is actual spinner -->
+                    <div id='loading-spinner' style='display:none';>
+                        <div class='spinner'></div>
+                    </div>
+
+                    <textarea id='chat-input' placeholder='Ask anything (Shift + Enter to add selection)'></textarea>
+                    <button id='send-msg'>Send</button>
+                    <button id='edit-last'>Edit Last</button>
+                </div>
+                
                 <div id='notes-content' style='display:none;'></div>
 
 
-                <!-- outer div controls visibility, inner is actual spinner -->
-                <div id='loading-spinner' style='display:none';>
-                    <div class='spinner'></div>
-                </div>
 
-                <div id='chat-messages'></div>
-                <textarea id='chat-input' placeholder='Ask anything (Shift + Enter to add selection)'></textarea>
-                <button id='send-msg'>Send</button>
-                <button id='edit-last'>Edit Last</button>
             </div>
 
         </main>
@@ -289,6 +292,19 @@
             });
 
 
+            // Notes interface
+            function showChat() {
+                document.getElementById('chat-content').style.display = 'block';
+                document.getElementById('notes-content').style.display = 'none';
+            }
+
+            function showNotes() {
+                document.getElementById('chat-content').style.display = 'none';
+                document.getElementById('notes-content').style.display = 'block';
+            }
+
+            document.getElementById('chat-tab').addEventListener('click', showChat);
+            document.getElementById('notes-tab').addEventListener('click', showNotes);
 
 
         </script>
