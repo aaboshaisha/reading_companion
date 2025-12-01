@@ -14,20 +14,36 @@
             }
 
             #toolbar { background-color:#f9f9f9; padding: 10px 20px; border-bottom: 1px solid #d0d0d0; }
-            #pdf-container { position: relative; flex:1;}
+            #pdf-container { position: relative; flex:1; display:flex; justify-content:center; padding:20px;}
             #text-layer { position: absolute; left:0; top:0; }
-            /* #toolbar { display:flex; gap:50px;} */
-            #main-container { display: flex; min-height: 80vh; }
-            #chat-container { width: 300px; }
+            #main-container { display: flex; min-height: 100vh; }
+            #chat-container { width: 300px; background-color:white; border-left: 1px solid #d0d0d0; padding: 15px; }
             #msgs { max-height: 400px; overflow-y: auto; }
 
-            /* button.icon-btn { background:none; border:none; cursor:pointer;} */
+            #tab-buttons { display:flex; gap:5px; margin-bottom:15px;}
+            #tab-buttons button {
+                flex: 1;
+                padding: 8px;
+                background-color: transparent;
+                border: none;
+                border-bottom: 2px solid transparent;
+                cursor: pointer;
+            }
+            #tab-buttons button:hover { background-color: #e0e0e0;}
+
+            #tab-buttons button.active {
+                border-bottom: 2px solid;
+                font-weight: 600;
+            }
+
+
             button.icon-btn { background-color: white; border: 1px solid #d0d0d0; border-radius: 5px;
-                            padding: 6px 12px; cursor:pointer;}
+                              padding: 6px 12px; cursor:pointer;}
             button.icon-btn:hover { background-color: #e8e8e8; }
 
-            label.icon-btn { display: inline-block; font-size: 24px; }
-            
+            label.icon-btn { display: inline-block; font-size: 24px; cursor:pointer;}
+
+
             /* Creates a circle with a colored top border */
             .spinner {
                 border: 4px solid #f3f3f3;
@@ -51,7 +67,7 @@
         <div id='toolbar'>
             <label for='open-pdf' class='icon-btn'>&#128194;</label>
             <input type='file' id='open-pdf' accept='.pdf' style='display:none;'>
-            
+
             <button id='prev' class='icon-btn' disabled>&#9664;</button>
             <span><span id='page-num'></span> / <span id='page-count'></span></span>
             <button id='next' class='icon-btn' disabled>&#9654;</button>
@@ -81,7 +97,7 @@
                 </div>
 
                 <div id='tab-buttons'>
-                    <button id='chat-tab'>Chat</button>
+                    <button id='chat-tab' class='active'>Chat</button>
                     <button id='notes-tab'>Notes</button>
                 </div>
 
@@ -197,7 +213,7 @@
             document.getElementById('open-pdf').addEventListener('change', function(e){
                 const file = e.target.files[0];
                 currentFileName = file.name;
-                
+
                 const fileReader = new FileReader(); // browser api - reads file from user's computer
                 fileReader.onload = async function() {
                     const typedarray = new Uint8Array(this.result);
@@ -226,7 +242,7 @@
                 // arrow keys for page navigation
                 if (e.key == 'ArrowLeft') { document.getElementById('prev').click(); }
                 else if (e.key == 'ArrowRight') { document.getElementById('next').click();}
-                
+
                 // Shift + Plus/Minus for zoom
                 if (e.shiftKey && (e.key === '+' || e.key === '=')) {
                     document.getElementById('zoom-in').click();
@@ -338,11 +354,15 @@
             function showChat() {
                 document.getElementById('chat-content').style.display = 'block';
                 document.getElementById('notes-content').style.display = 'none';
+                document.getElementById('chat-tab').classList.add('active');
+                document.getElementById('notes-tab').classList.remove('active');
             }
 
             function showNotes() {
                 document.getElementById('chat-content').style.display = 'none';
                 document.getElementById('notes-content').style.display = 'block';
+                document.getElementById('notes-tab').classList.add('active');
+                document.getElementById('chat-tab').classList.remove('active');
             }
 
             document.getElementById('chat-tab').addEventListener('click', showChat);
@@ -400,7 +420,7 @@
                 const jsonStr = JSON.stringify(notesArray);
                 const blob = new Blob([jsonStr], {type:'application/json'});
                 const url = URL.createObjectURL(blob);
-                
+
                 const a = document.createElement('a');
                 a.href = url; a.download = currentFileName + '_notes.json';
                 a.click();
