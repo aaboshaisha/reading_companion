@@ -15,6 +15,7 @@
             #chat-container { width: 300px; }
             #msgs { max-height: 400px; overflow-y: auto; }
 
+            button.icon-btn { background:none; border:none; cursor:pointer;}
             /* Creates a circle with a colored top border */
             .spinner {
                 border: 4px solid #f3f3f3;
@@ -81,15 +82,16 @@
                     <button id='send-msg'>Send</button>
                     <button id='edit-last'>Edit Last</button>
                 </div>
-                
-                <div id='notes-content' style='display:none;'>
-                    <div id='notes-area'></div>
-                    <textarea placeholder="Type your notes here..."></textarea>
-                    <button id='save-note'>Save</button>
-                    </div>
-                </div>
 
+                <div id='notes-content' style='display:none;'>
+                    <div id='notes-list'></div>
+                    <textarea id='note-text' placeholder="Type your notes here..."></textarea>
+                    <button id='save-note'>Save</button>
+
+                </div>
             </div>
+
+        </div>
 
         </main>
 
@@ -306,6 +308,39 @@
             document.getElementById('chat-tab').addEventListener('click', showChat);
             document.getElementById('notes-tab').addEventListener('click', showNotes);
 
+
+            let currentEditNote = null;
+            function saveNote(){
+                const notesArea = document.getElementById('notes-list');
+                const textArea = document.getElementById('note-text');
+
+                if (currentEditNote) {
+                    currentEditNote.querySelector('span').textContent = textArea.value;
+                    currentEditNote = null; // reset
+                }
+                else{
+                    // create new note Div
+                    const noteDiv = document.createElement('div');
+                    noteDiv.innerHTML = `
+                    <span>${textArea.value}</span>
+                    <button class='icon-btn' onclick="editNote(this)">&#9998;</button>
+                    <button class='icon-btn' onclick="deleteNote(this)">&#10006;</button>
+                    `;
+                    notesArea.appendChild(noteDiv);
+                }
+                textArea.value = '';
+            }
+
+            document.getElementById('save-note').addEventListener('click', saveNote);
+            
+            function deleteNote(btn) { btn.parentElement.remove(); }
+
+            function editNote(btn) {
+                const noteDiv = btn.parentElement;
+                const noteText = noteDiv.querySelector('span').textContent;
+                document.getElementById('note-text').value = noteText; // put it in textarea
+                currentEditNote = noteDiv; // remember which note we're editing
+            }
 
         </script>
     </body>
