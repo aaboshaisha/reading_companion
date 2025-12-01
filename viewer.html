@@ -25,36 +25,60 @@
                 border: none;
             }
 
+
+            #notes-list div {
+                position: relative;
+                background-color: #f7f7f8; 
+                padding: 12px; margin-bottom: 8px; border-radius: 8px;
+            }
+
+            /* positions buttons differently */
+            #notes-list div button:first-of-type { right: 40px; }
+            #notes-list div button:last-of-type { right: 4px; }
+
+            #note-text {
+                width: 100%; padding: 10px; margin-bottom: 8px;
+                border: 1px solid #d0d0d0; border-radius: 8px;
+                font-family: inherit;
+                resize: vertical; box-sizing: border-box;
+            }
+
+            #download-notes {
+                width: 100%; padding: 10px; margin-top: 10px;
+                border: 1px solid #d0d0d0; border-radius: 8px; cursor:pointer;
+                color:black; background-color: transparent;
+            }
+
+            ##download-notes:hover { background-color: #f0f0f0;}
+
+
             .user-msg, .bot-msg { position: relative; }
-            .user-msg button, .bot-msg button {
+            .user-msg button, .bot-msg button, #notes-list div button {
                 position: absolute;
                 top: 8px; right: 8px;
                 opacity: 0; transition: opacity 0.2s;
             }
-            .user-msg:hover button, .bot-msg:hover button { opacity: 1; }
+            .user-msg:hover button, .bot-msg:hover button, #notes-list div:hover button{ opacity: 1; }
 
             #input-wrapper { position: relative; margin-bottom: 8px; }
 
             #chat-input {
-                width:100%;
-                padding:10px 45px 10px 10px;
-                border: 1px solid #d0d0d0;
-                border-radius: 8px;
+                width:100%; padding:10px 45px 10px 10px;
+                border: 1px solid #d0d0d0; border-radius: 8px;
                 font-family: inherit;
                 resize: vertical;
                 box-sizing: border-box;
             }
 
+
             #send-msg {
                 position: absolute;
                 right: 8px; bottom: 8px; width: 32px; height: 32px; 
-                background-color: #007aff;
                 color: white; background-color: black;
                 border: none; border-radius: 6px;
                 cursor: pointer; font-size: 16px;
             }
             #send-msg:hover { background-color: #333; }
-            
 
             #tab-buttons { display:flex; gap:5px; margin-bottom:15px;}
             #tab-buttons button {
@@ -155,8 +179,6 @@
                 <div id='notes-content' style='display:none;'>
                     <div id='notes-list'></div>
                     <textarea id='note-text' placeholder="Type your notes here..."></textarea>
-                    <button id='save-note' class='icon-btn'>&#128190;</button>
-
                     <button id='download-notes'>Download All</button>
 
                 </div>
@@ -420,7 +442,8 @@
                 textArea.value = '';
             }
 
-            document.getElementById('save-note').addEventListener('click', saveNote);
+            // auto-save on blur: when step away
+            document.getElementById('note-text').addEventListener('blur', saveNote);
 
             function deleteNote(btn) { btn.parentElement.remove(); }
 
@@ -462,4 +485,4 @@
 
         </script>
     </body>
-    </html>
+</html>
