@@ -20,8 +20,8 @@
                 border: 4px solid #f3f3f3;
                 border-top: 4px solid #3498db;
                 border-radius: 50%;
-                width: 30px;
-                height: 30px;
+                width: 20px;
+                height: 20px;
                 animation: spin 1s linear infinite;
             }
 
@@ -67,7 +67,14 @@
                     <button id='save-key'>Save Key</button>
                 </div>
 
-                <div id='msgs'></div>
+                <div id='tab-buttons'>
+                    <button id='chat-tab'>Chat</button>
+                    <button id='notes-tab'>Notes</button>
+                </div>
+
+                <div id='chat-content'><div id='msgs'></div></div>
+                <div id='notes-content' style='display:none;'></div>
+
 
                 <!-- outer div controls visibility, inner is actual spinner -->
                 <div id='loading-spinner' style='display:none';>
@@ -93,7 +100,7 @@
             let pnum = 1;
             let scale = 1.5;
 
-            // load api key if already saved
+            // load saved api key
             const savedKey = localStorage.getItem('apiKey');
             if (savedKey) {
                 // alert('Loaded saved API key!');
@@ -108,90 +115,67 @@
             }
 
             async function renderPage(num, scale) {
-                // disable buttons while rendering
-                disableButtons(true);
+                disableButtons(true); // disable buttons while rendering
 
-                const page = await doc.getPage(num);
-                // extracts all the text from the page along with positioning information for each character/word.
+                const page = await doc.getPage(num); // extracts all the text from the page along with positioning information for each character/word.
                 const text = await page.getTextContent();
                 const textDiv = document.getElementById('text-layer');
                 textDiv.innerHTML = ''; // clear prev text
 
                 const canvas = document.getElementById('pdf-canvas');
-                // context is our toolkit - we give it instructions to draw
-                const ctx = canvas.getContext('2d');
-                // get page dims and make it 1.5x bigger 
-                const viewport = page.getViewport({scale: scale});
-                // set canvas size to match it
-                canvas.height=viewport.height; canvas.width=viewport.width;
-                // render the page.. ctx (toolkit to draw) and viewport(what size)
-                await page.render({canvasContext:ctx, viewport:viewport}).promise;
+                const ctx = canvas.getContext('2d'); // context is our toolkit - we give it instructions to draw
+                const viewport = page.getViewport({scale: scale}); // get page dims and make it 1.5x bigger 
+                canvas.height=viewport.height; canvas.width=viewport.width; // set canvas size to match it
+                await page.render({canvasContext:ctx, viewport:viewport}).promise; // render the page.. ctx (toolkit to draw) and viewport(what size)
 
                 document.getElementById('pdf-container').style.setProperty('--scale-factor', viewport.scale);
-
-                // render text layer
-                pdfjsLib.renderTextLayer({ textContentSource: text, container: textDiv, viewport: viewport });
-
-                // update page-num
-                document.getElementById('page-num').innerHTML = num;
-
-                // enable them when done
-                disableButtons(false);
+                pdfjsLib.renderTextLayer({ textContentSource: text, container: textDiv, viewport: viewport }); // render text layer
+                document.getElementById('page-num').innerHTML = num; // update page-num
+                disableButtons(false); // enable them when done
 
             }
 
-            // add click handler to buttons
-            document.getElementById('next').addEventListener('click', function() {
+            // Navigation buttons
+
+            function nextPage() {
                 if (pnum < doc.numPages) {
                     pnum = pnum + 1;
                     renderPage(pnum, scale);
                 }
+            }
 
-            });
-
-            document.getElementById('prev').addEventListener('click', function (){
-                if (pnum > 1){
+            function prevPage() {
+                if (pnum > 1) {
                     pnum = pnum - 1;
-                    renderPage(pnum, scale);        
+                    renderPage(pnum, scale);
                 }
+            }
 
-            });
-
-
-            document.getElementById('zoom-in').addEventListener('click', function() {
-                if (scale < 4.0){
+            function zoomIn() {
+                if (scale < 4.0) {
                     scale = scale + 0.25;
-                    renderPage(pnum, scale); 
+                    renderPage(pnum, scale);
                 }
+            }
 
-            });
-
-            document.getElementById('zoom-out').addEventListener('click', function() {
+            function zoomOut() {
                 if (scale > 0.35) {
                     scale = scale - 0.25;
                     renderPage(pnum, scale);
                 }
+            }
 
-            });
+            document.getElementById('next').addEventListener('click', nextPage);
+            document.getElementById('prev').addEventListener('click', prevPage);
+            document.getElementById('zoom-in').addEventListener('click', zoomIn);
+            document.getElementById('zoom-out').addEventListener('click', zoomOut);
 
-
-            // send selection to input area
-            document.addEventListener('keydown', function(e){
-                if (e.shiftKey && e.key == 'Enter') {
-                    const selection = window.getSelection().toString();
-                    document.getElementById('chat-input').value += '""""' + selection + '""""';
-                }
-            });
-
-
+            // File upload
             document.getElementById('open-pdf').addEventListener('change', function(e){
                 const file = e.target.files[0];
                 const fileReader = new FileReader(); // browser api - reads file from user's computer
-                // what happens when file loaded
                 fileReader.onload = async function() {
                     const typedarray = new Uint8Array(this.result);
-                    // this.result: file data in raw binary
-                    // UintArray8: wraps it as an array of unsigned 8-bit integers (bytes) - the format PDF.js expects
                     doc = await pdfjsLib.getDocument(typedarray).promise;
                     console.log('pdf loaded!!!');
                     pnum=1; // reset to page 1
@@ -201,8 +185,20 @@
                 fileReader.readAsArrayBuffer(file);
             });
 
+            // this.result: file data in raw binary
+            // UintArray8: wraps it as an array of unsigned 8-bit integers (bytes) - the format PDF.js expects
 
-            // saving api key
+
+            // Send selection to input area
+            document.addEventListener('keydown', function(e){
+                if (e.shiftKey && e.key == 'Enter') {
+                    const selection = window.getSelection().toString();
+                    document.getElementById('chat-input').value += '""""' + selection + '""""';
+                }
+            });
+
+
+            // save api key
             document.getElementById('save-key').addEventListener('click', function () {
                 const keyInput = document.getElementById('api-key');
                 localStorage.setItem('apiKey', keyInput.value);
@@ -224,17 +220,21 @@
                 msgs.innerHTML += '<div>' + msg + '</div>';
             }
 
-            // API CALLS
-            document.getElementById('send-msg').addEventListener('click', async function() {
+            // Chat Functions
+
+            // Send message
+            async function sendMessage() {
                 const chatInput = document.getElementById('chat-input');
                 const userMsg = chatInput.value;
                 chatInput.value = '';
                 updateMessages(userMsg);
-                document.getElementById('loading-spinner').style.display = 'block'; // show
+                document.getElementById('loading-spinner').style.display = 'block';
                 const botMsg = await getResponse(userMsg);
-                document.getElementById('loading-spinner').style.display = 'none'; // hide
-                if (botMsg) {updateMessages(botMsg);} 
-            });
+                document.getElementById('loading-spinner').style.display = 'none';
+                if (botMsg) { updateMessages(botMsg); }
+            }
+
+            document.getElementById('send-msg').addEventListener('click', sendMessage);
 
 
             function configOptions(apiKey, msg) {
@@ -275,7 +275,7 @@
                     msgs.lastElementChild.remove();
                     return;
                 }
-                
+
             }
 
             // edit last user message
@@ -293,4 +293,4 @@
 
         </script>
     </body>
-    </html>
+</html>
