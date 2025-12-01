@@ -222,8 +222,15 @@
             // Add messages
             function updateMessages(msg) {
                 const msgs = document.getElementById('msgs');
-                msgs.innerHTML += '<div>' + msg + '</div>';
+                const msgDiv = document.createElement('div');
+                msgDiv.innerHTML = `
+                <span>${msg}</span>
+                <button class='icon-btn' onclick='deleteMessage(this)'>&#9003;</button>
+                `;
+                msgs.appendChild(msgDiv);
             }
+
+            function deleteMessage(btn) { btn.parentElement.remove(); }
 
             // Chat Functions
 
@@ -324,7 +331,7 @@
                     noteDiv.innerHTML = `
                     <span>${textArea.value}</span>
                     <button class='icon-btn' onclick="editNote(this)">&#9998;</button>
-                    <button class='icon-btn' onclick="deleteNote(this)">&#10006;</button>
+                    <button class='icon-btn' onclick="deleteNote(this)">&#9003;</button>
                     `;
                     notesArea.appendChild(noteDiv);
                 }
