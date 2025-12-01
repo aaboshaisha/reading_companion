@@ -39,16 +39,14 @@
             <div><input type='file' id='open-pdf' accept='.pdf'></div>
 
             <div>
-                <button id='prev'>Previous</button>
-                <span>
-                    <span id='page-num'></span> / <span id='page-count'></span>
-                </span>
-                <button id='next'>Next</button>
+                <button id='prev' disabled>Previous</button>
+                <span><span id='page-num'></span> / <span id='page-count'></span></span>
+                <button id='next' disabled>Next</button>
             </div>
 
-            <div><button id='zoom-in'>+</button> | <button id='zoom-out'>-</button></div>
+            <div><button id='zoom-in' disabled>+</button> | <button id='zoom-out' disabled>-</button></div>
 
-            <div><button id='set-key-btn'>Set API key</div>
+            <div><button id='settings-btn'>Settings</div>
         </div>
 
         <main id='main-container'>
@@ -62,7 +60,7 @@
 
             <div id='chat-container'>
 
-                <div id='api-container' style='margin-top:10px; margin-bottom:10px;'>
+                <div id='api-key-container' style='margin-top:10px; margin-bottom:10px;'>
                     <input type='text' id='api-key' placeholder='Enter API key'>
                     <button id='save-key'>Save Key</button>
                 </div>
@@ -84,9 +82,12 @@
                     <button id='edit-last'>Edit Last</button>
                 </div>
                 
-                <div id='notes-content' style='display:none;'></div>
-
-
+                <div id='notes-content' style='display:none;'>
+                    <div id='notes-area'></div>
+                    <textarea placeholder="Type your notes here..."></textarea>
+                    <button id='save-note'>Save</button>
+                    </div>
+                </div>
 
             </div>
 
@@ -98,7 +99,6 @@
             // tell pdfjs where worker file is
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-            const url = 'sample.pdf';
             let doc = null;
             let pnum = 1;
             let scale = 1.5;
@@ -211,8 +211,8 @@
 
 
             // show / hide api key input
-            const apiDiv = document.getElementById('api-container');
-            document.getElementById('set-key-btn').addEventListener('click', function () {
+            const apiDiv = document.getElementById('api-key-container');
+            document.getElementById('settings-btn').addEventListener('click', function () {
                 if (apiDiv.style.display == 'none') { apiDiv.style.display = 'block'; }
                 else { apiDiv.style.display = 'none';}
             });
