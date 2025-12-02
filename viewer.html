@@ -567,18 +567,21 @@
             // Think of it like: You're creating a temporary file in the browser, then tricking the browser into downloading it as if it came from a server.
 
             function downloadNotes() {
-                const notesDiv = document.querySelectorAll('#noteslist div');
+                const notesDiv = document.querySelectorAll('#notes-list div');
                 const notesArray = [];
                 for (const ndiv of notesDiv){
-                    const text = document.querySelector('span').textContent;
-                    notesArray.push(text);
+                    const span = ndiv.querySelector('span');
+                    if (span) {
+                        notesArray.push(span.textContent.trim());
+                    }
+                    
                 }
-                const jsonStr = JSON.stringify(notesArray);
-                const blob = new Blob([jsonStr], {type:'application/json'});
+                const txtStr = notesArray.join('\n');
+                const blob = new Blob([txtStr], {type:'text/plain'});
                 const url = URL.createObjectURL(blob);
 
                 const a = document.createElement('a');
-                a.href = url; a.download = currentFileName + '_notes.json';
+                a.href = url; a.download = currentFileName + '_notes.txt';
                 a.click();
                 URL.revokeObjectURL(url);
             }
