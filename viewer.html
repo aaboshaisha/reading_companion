@@ -13,7 +13,17 @@
                 background-color: #e8e8e8;
             }
 
-            #toolbar { background-color:#f9f9f9; padding: 10px 20px; border-bottom: 1px solid #d0d0d0; }
+            #toolbar {
+                background-color:#f9f9f9; 
+                padding: 10px 20px; border-bottom: 1px solid #d0d0d0; 
+            }
+
+            #api-key-container {
+                position: absolute; z-index: 100;
+                top: 5px; right: 10px; padding: 15px; min-width: 250px;
+                background: white; border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
 
             /* This wraps the canvas and text layer to keep them aligned */
             #page-wrapper {
@@ -29,7 +39,7 @@
                 position: absolute; left:0; top:0; right:0; bottom:0;
                 overflow: hidden; line-height: 1.0;
             }
-            
+
 
             #main-container { display: flex; min-height: 100vh; }
             #pdf-container { position: relative; flex:1; display:flex; justify-content:center; padding:20px; overflow: auto; }
@@ -168,6 +178,12 @@
             <button id='settings-btn' class='icon-btn'>&#9881;</button>
         </div>
 
+        <div id='api-key-container' style='display: none;'>
+            <input type='password' id='api-key' placeholder='Enter API key'>
+            <button id='save-key' class='icon-btn'>&check;</button>
+            <button id='close-key' class='icon-btn'>&cross;</button>
+        </div>
+
 
         <main id='main-container'>
 
@@ -183,11 +199,6 @@
             <div id='chat-container'>
 
                 <button id='toggle-sidebar'>&laquo;</button>
-
-                <div id='api-key-container' style='margin-top:10px; margin-bottom:10px; display: none;'>
-                    <input type='text' id='api-key' placeholder='Enter API key'>
-                    <button id='save-key' class='icon-btn'>&#128190;</button>
-                </div>
 
                 <div id='tab-buttons'>
                     <button id='chat-tab' class='active'>Chat</button>
@@ -270,7 +281,7 @@
                 // 5. Render Text Layer 
                 const textDiv = document.getElementById('text-layer');
                 textDiv.innerHTML = ''; // clear prev text
-                
+
                 const text = await page.getTextContent();
 
                 await pdfjsLib.renderTextLayer({ textContentSource: text, container: textDiv, viewport: viewport }); // render text layer
@@ -359,13 +370,7 @@
             });
 
 
-            // save api key
-            document.getElementById('save-key').addEventListener('click', function () {
-                const keyInput = document.getElementById('api-key');
-                localStorage.setItem('apiKey', keyInput.value);
-                keyInput.value = '';
-                alert('Key saved!');
-            });
+
 
 
             // show / hide api key input
@@ -374,6 +379,18 @@
                 if (apiDiv.style.display == 'none') { apiDiv.style.display = 'block'; }
                 else { apiDiv.style.display = 'none';}
             });
+
+            // save api key
+            document.getElementById('save-key').addEventListener('click', function () {
+                const keyInput = document.getElementById('api-key');
+                localStorage.setItem('apiKey', keyInput.value);
+                keyInput.value = '';
+                alert('Key saved!');
+            });
+
+            // close api-key div
+            document.getElementById('close-key').addEventListener('click', function () { apiDiv.style.display = 'none'; })
+            
 
             // Add messages
             function updateMessages(msg, role) {
