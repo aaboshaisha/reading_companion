@@ -14,9 +14,25 @@
             }
 
             #toolbar { background-color:#f9f9f9; padding: 10px 20px; border-bottom: 1px solid #d0d0d0; }
-            #pdf-container { position: relative; flex:1; display:flex; justify-content:center; padding:20px;}
-            #text-layer { position: absolute; left:0; top:0; }
+
+            /* This wraps the canvas and text layer to keep them aligned */
+            #page-wrapper {
+                position:relative;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+
+            /* Canvas is block to remove bottom spacing*/
+            #pdf-canvas { display: block; }
+
+            /* Text layer matches wrapper exactly */
+            #text-layer {
+                position: absolute; left:0; top:0; right:0; bottom:0;
+                overflow: hidden; line-height: 1.0;
+            }
+            
+
             #main-container { display: flex; min-height: 100vh; }
+            #pdf-container { position: relative; flex:1; display:flex; justify-content:center; padding:20px; overflow: auto; }
             #chat-container { position: relative; width: 300px; background-color:white; border-left: 1px solid #d0d0d0; padding: 15px; }
             #msgs {
                 max-height: 400px; overflow-y: auto; 
@@ -62,7 +78,7 @@
             }
 
             #toggle-sidebar:hover { background-color: #f0f0f0;}
-            
+
             .user-msg, .bot-msg { position: relative; }
             .user-msg button, .bot-msg button, #notes-list div button {
                 position: absolute;
@@ -155,12 +171,14 @@
 
         <main id='main-container'>
 
-            <!-- add container to have both canvas and text layer for selection -->
             <div id='pdf-container'>
-                <canvas id='pdf-canvas'></canvas>
-                <!-- textLayer: a pdfjs class that handles text positioning, scaling, and overlay on canvas for selection/search -->
-                <div id='text-layer' class='textLayer'></div>
+                <!-- the wrapper ensures canvas and text layer locked / aligned together for accurate selection-->
+                <div id='page-wrapper'>
+                    <canvas id='pdf-canvas'></canvas>
+                    <div id='text-layer' class='textLayer'></div>
+                </div>
             </div>
+            <!-- textLayer: a pdfjs class that handles text positioning, scaling, and overlay on canvas for selection/search -->
 
             <div id='chat-container'>
 
@@ -178,10 +196,11 @@
 
                 <div id='chat-content'>
                     <div id='msgs'></div>
-                    <!-- outer div controls visibility, inner is actual spinner -->
                     <div id='loading-spinner' style='display:none';>
                         <div class='spinner'></div>
                     </div>
+                    <!-- outer div controls visibility, inner is actual spinner -->
+
 
                     <div id='input-wrapper'>
                         <textarea id='chat-input' placeholder='Ask anything (Shift + Enter to add selection)'></textarea>
@@ -229,18 +248,32 @@
                 disableButtons(true); // disable buttons while rendering
 
                 const page = await doc.getPage(num); // extracts all the text from the page along with positioning information for each character/word.
-                const text = await page.getTextContent();
-                const textDiv = document.getElementById('text-layer');
-                textDiv.innerHTML = ''; // clear prev text
+                const viewport = page.getViewport({scale: scale}); // get page dims and make it 1.5x bigger
 
+                // 1. set dimensions on Wrapper
+                const wrapper = document.getElementById('page-wrapper');
+                wrapper.style.width = Math.floor(viewport.width) + 'px';
+                wrapper.style.height = Math.floor(viewport.height) + 'px';
+
+                // 2. set dimensions on Canvas
                 const canvas = document.getElementById('pdf-canvas');
                 const ctx = canvas.getContext('2d'); // context is our toolkit - we give it instructions to draw
-                const viewport = page.getViewport({scale: scale}); // get page dims and make it 1.5x bigger 
                 canvas.height=viewport.height; canvas.width=viewport.width; // set canvas size to match it
+
+                // 3. Render Canvas
                 await page.render({canvasContext:ctx, viewport:viewport}).promise; // render the page.. ctx (toolkit to draw) and viewport(what size)
 
-                document.getElementById('pdf-container').style.setProperty('--scale-factor', viewport.scale);
-                pdfjsLib.renderTextLayer({ textContentSource: text, container: textDiv, viewport: viewport }); // render text layer
+                // 4. Set CSS variable for Text Layer (required by pdf.js CSS)
+                // It must be set on the container that holds the textLayer
+                wrapper.style.setProperty('--scale-factor', viewport.scale);
+
+                // 5. Render Text Layer 
+                const textDiv = document.getElementById('text-layer');
+                textDiv.innerHTML = ''; // clear prev text
+                
+                const text = await page.getTextContent();
+
+                await pdfjsLib.renderTextLayer({ textContentSource: text, container: textDiv, viewport: viewport }); // render text layer
                 document.getElementById('page-num').innerHTML = num; // update page-num
                 disableButtons(false); // enable them when done
 
