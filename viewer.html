@@ -61,7 +61,8 @@
             #notes-list div button:first-of-type { right: 40px; }
             #notes-list div button:last-of-type { right: 4px; }
 
-            #note-text {
+            #note-input {
+                max-height: 200px; overflow-y:auto;
                 width: 100%; padding: 10px; margin-bottom: 8px;
                 border: 1px solid #d0d0d0; border-radius: 8px;
                 font-family: inherit;
@@ -100,6 +101,7 @@
             #input-wrapper { position: relative; margin-bottom: 8px; }
 
             #chat-input {
+                max-height: 200px; overflow-y: auto;
                 width:100%; padding:10px 45px 10px 10px;
                 border: 1px solid #d0d0d0; border-radius: 8px;
                 font-family: inherit;
@@ -222,7 +224,7 @@
 
                 <div id='notes-content' style='display:none;'>
                     <div id='notes-list'></div>
-                    <textarea id='note-text' placeholder="Type your notes here..."></textarea>
+                    <textarea id='note-input' placeholder="Type your notes here..."></textarea>
                     <button id='download-notes'>Download All</button>
 
                 </div>
@@ -497,7 +499,7 @@
             let currentEditNote = null;
             function saveNote(){
                 const notesArea = document.getElementById('notes-list');
-                const textArea = document.getElementById('note-text');
+                const textArea = document.getElementById('note-input');
 
                 if (currentEditNote) {
                     currentEditNote.querySelector('span').textContent = textArea.value;
@@ -517,14 +519,14 @@
             }
 
             // auto-save on blur: when step away
-            document.getElementById('note-text').addEventListener('blur', saveNote);
+            document.getElementById('note-input').addEventListener('blur', saveNote);
 
             function deleteNote(btn) { btn.parentElement.remove(); }
 
             function editNote(btn) {
                 const noteDiv = btn.parentElement;
                 const noteText = noteDiv.querySelector('span').textContent;
-                document.getElementById('note-text').value = noteText; // put it in textarea
+                document.getElementById('note-input').value = noteText; // put it in textarea
                 currentEditNote = noteDiv; // remember which note we're editing
             }
 
@@ -573,6 +575,15 @@
                 sidebarVisible = !sidebarVisible;
             });
 
+            // autoexpand text area
+            function autoExpandTextarea(e) {
+                const element = e.target;
+                element.style.height = 'auto';
+                element.style.height = element.scrollHeight + 'px';
+            }
+
+            document.getElementById('chat-input').addEventListener('input', autoExpandTextarea);
+            document.getElementById('note-input').addEventListener('input', autoExpandTextarea);
 
 
         </script>
