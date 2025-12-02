@@ -182,6 +182,7 @@
             <input type='password' id='api-key' placeholder='Enter API key'>
             <button id='save-key' class='icon-btn'>&check;</button>
             <button id='close-key' class='icon-btn'>&cross;</button>
+            <button id='remove-key' class='icon-btn'>Remove</button>
         </div>
 
 
@@ -389,7 +390,15 @@
             });
 
             // close api-key div
-            document.getElementById('close-key').addEventListener('click', function () { apiDiv.style.display = 'none'; })
+            document.getElementById('close-key').addEventListener('click', function () { apiDiv.style.display = 'none'; });
+
+            // Remove api-key from local storage
+            document.getElementById('remove-key').addEventListener('click', function () {
+                if (confirm('Are you sure you want to clear your API key?')){
+                    localStorage.removeItem('apiKey');
+                    alert('API key cleared!');
+                }
+            });
             
 
             // Add messages
@@ -498,7 +507,7 @@
                     noteDiv.innerHTML = `
                     <span>${textArea.value}</span>
                     <button class='icon-btn' onclick="editNote(this)">&#9998;</button>
-                    <button class='icon-btn' onclick="deleteNote(this)">&#9003;</button>
+                    <button class='icon-btn' onclick="deleteNote(this)">&cross;</button>
                     `;
                     notesArea.appendChild(noteDiv);
                 }
