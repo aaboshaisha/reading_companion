@@ -224,7 +224,7 @@
 
                 <div id='notes-content' style='display:none;'>
                     <div id='notes-list'></div>
-                    <textarea id='note-input' placeholder="Type notes here. Click outside to save.."></textarea>
+                    <textarea id='note-input' placeholder="Type notes here. Click outside to save or Shift + Enter..."></textarea>
                     <button id='download-notes'>Download All</button>
 
                 </div>
@@ -357,13 +357,31 @@
             document.addEventListener('keydown', function(e){
                 if (e.shiftKey && e.key == 'Enter') {
                     const selection = window.getSelection().toString();
-                    document.getElementById('chat-input').value += '""""' + selection + '""""';
+                    if (selection) {
+                        document.getElementById('chat-input').value += '""""' + selection + '""""';
 
-                const chatInput = document.getElementById('chat-input');
-                chatInput.focus(); //Puts the cursor inside the textarea
-                chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
+                        const chatInput = document.getElementById('chat-input');
+                        chatInput.focus(); //Puts the cursor inside the textarea
+                        chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length); 
+                    }
                 }
             });
+
+            function addShiftEnterSubmit(textareaId, submitFunction) {
+                document.getElementById(textareaId).addEventListener('keydown', function (e) {
+                    textarea = document.getElementById(textareaId);
+                    const textContent = textarea.value.trim();
+                    if (textContent) {
+                        if (e.shiftKey && e.key == 'Enter') {
+                            e.preventDefault();
+                            submitFunction();
+                        }
+                    }
+                });
+            }
+
+            addShiftEnterSubmit('chat-input', sendMessage);
+            addShiftEnterSubmit('note-input', saveNote);
 
             document.addEventListener('keydown', function(e) {
                 // arrow keys for page navigation
@@ -377,7 +395,7 @@
                     document.getElementById('zoom-out').click();
                 }
             });
-            
+
 
             // show / hide api key input
             const apiDiv = document.getElementById('api-key-container');
@@ -404,7 +422,7 @@
                     alert('API key cleared!');
                 }
             });
-            
+
 
             // Add messages
             function updateMessages(msg, role) {
