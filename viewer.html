@@ -201,7 +201,7 @@
 
             <div id='chat-container'>
 
-                <button id='toggle-sidebar'>&laquo;</button>
+                <button id='toggle-sidebar'>&raquo;</button>
 
                 <div id='tab-buttons'>
                     <button id='chat-tab' class='active'>Chat</button>
@@ -594,11 +594,11 @@
 
                 if (sidebarVisible) {
                     sidebar.style.width = '0'; sidebar.style.padding = '0';
-                    btn.innerHTML = '&raquo;'; // change to rt arrow
+                    btn.innerHTML = '&laquo;'; // change to rt arrow
                 }
                 else{
                     sidebar.style.width = '300px'; sidebar.style.padding = '15px';
-                    btn.innerHTML = '&laquo;'; // change to lt arrow
+                    btn.innerHTML = '&raquo;'; // change to lt arrow
                 }
                 sidebarVisible = !sidebarVisible;
             });
