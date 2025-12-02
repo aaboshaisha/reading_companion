@@ -354,6 +354,10 @@
                 if (e.shiftKey && e.key == 'Enter') {
                     const selection = window.getSelection().toString();
                     document.getElementById('chat-input').value += '""""' + selection + '""""';
+
+                const chatInput = document.getElementById('chat-input');
+                chatInput.focus(); //Puts the cursor inside the textarea
+                chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
                 }
             });
 
@@ -369,10 +373,7 @@
                     document.getElementById('zoom-out').click();
                 }
             });
-
-
-
-
+            
 
             // show / hide api key input
             const apiDiv = document.getElementById('api-key-container');
@@ -411,6 +412,7 @@
                 <button class='icon-btn' onclick='deleteMessage(this)'>x</button>
                 `;
                 msgs.appendChild(msgDiv);
+                msgs.scrollTop = msgs.scrollHeight;
             }
 
             function deleteMessage(btn) { btn.parentElement.remove(); }
