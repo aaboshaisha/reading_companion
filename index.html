@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Viewer</title>
+        <!-- the core library that parses the pdf -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+        <!-- helper class to render text content onto text layer div -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
+
+        <style>
+            body {
+                margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                background-color: #e8e8e8;
+            }
+
+            #toolbar {
+                background-color:#f9f9f9; 
+                padding: 10px 20px; border-bottom: 1px solid #d0d0d0; 
+            }
+
+            #api-key-container {
+                position: absolute; z-index: 100;
+                top: 5px; right: 10px; padding: 15px; min-width: 250px;
+                background: white; border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+
+            /* This wraps the canvas and text layer to keep them aligned */
+            #page-wrapper {
+                position:relative;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+
+            /* Canvas is block to remove bottom spacing*/
+            #pdf-canvas { display: block; }
+
+            /* Text layer matches wrapper exactly */
+            #text-layer {
+                position: absolute; left:0; top:0; right:0; bottom:0;
+                overflow: hidden; line-height: 1.0;
+            }
+
+
+            #main-container { display: flex; min-height: 100vh; }
+            #pdf-container { position: relative; flex:1; display:flex; justify-content:center; padding:20px; overflow: auto; }
+            #chat-container { position: relative; width: 300px; background-color:white; border-left: 1px solid #d0d0d0; padding: 15px; }
+            #msgs {
+                max-height: 400px; overflow-y: auto; 
+                background-color: transparent; border: none;
+            }
+
+
+            #notes-list div {
+                position: relative;
+                background-color: #f7f7f8; 
+                padding: 12px; margin-bottom: 10px; border-radius: 8px;
+                max-height: 400px; overflow-y: auto;
+            }
+
+            /* positions buttons differently */
+            #notes-list div button:first-of-type { right: 40px; }
+            #notes-list div button:last-of-type { right: 4px; }
+
+            #note-input {
+                max-height: 200px; overflow-y:auto;
+                width: 100%; padding: 10px; margin-bottom: 8px;
+                border: 1px solid #d0d0d0; border-radius: 8px;
+                font-family: inherit;
+                resize: vertical; box-sizing: border-box;
+            }
+
+            #download-notes {
+                width: 100%; padding: 10px; margin-top: 10px;
+                border: 1px solid #d0d0d0; border-radius: 8px; cursor:pointer;
+                color:black; background-color: transparent;
+            }
+
+            ##download-notes:hover { background-color: #f0f0f0;}
+
+            #toggle-sidebar {
+                position: absolute;
+                left: -15px;  /* Position 15px outside the left border */
+                top: 50%;  /* Position at middle of sidebar height */
+                transform: translateY(-50%);  /* Shift up by half button's height to center it */
+                z-index: 10;  /* Display above other elements e.g. pdf canvas */
+                background-color: white;
+                border: 1px solid #d0d0d0; border-radius: 4px;
+                padding: 8px 4px; cursor: pointer; 
+            }
+
+            #toggle-sidebar:hover { background-color: #f0f0f0;}
+
+            .user-msg, .bot-msg { position: relative; }
+            .user-msg button, .bot-msg button, #notes-list div button {
+                position: absolute;
+                top: 8px; right: 8px;
+                opacity: 0; transition: opacity 0.2s;
+            }
+            .user-msg:hover button, .bot-msg:hover button, #notes-list div:hover button{ opacity: 1; }
+
+            #input-wrapper { position: relative; margin-bottom: 8px; }
+
+            #chat-input {
+                max-height: 200px; overflow-y: auto;
+                width:100%; padding:10px 45px 10px 10px;
+                border: 1px solid #d0d0d0; border-radius: 8px;
+                font-family: inherit;
+                resize: vertical;
+                box-sizing: border-box;
+            }
+
+
+            #send-msg {
+                position: absolute;
+                right: 8px; bottom: 8px; width: 32px; height: 32px; 
+                color: white; background-color: black;
+                border: none; border-radius: 6px;
+                cursor: pointer; font-size: 16px;
+            }
+            #send-msg:hover { background-color: #333; }
+
+            #tab-buttons { display:flex; gap:5px; margin-bottom:15px;}
+            #tab-buttons button {
+                flex: 1;
+                padding: 8px;
+                background-color: transparent;
+                border: none;
+                border-bottom: 2px solid transparent;
+                cursor: pointer;
+            }
+            #tab-buttons button:hover { background-color: #e0e0e0;}
+
+            #tab-buttons button.active {
+                border-bottom: 2px solid;
+                font-weight: 600;
+            }
+
+
+            button.icon-btn { background-color: white; border: 1px solid #d0d0d0; border-radius: 5px;
+                              padding: 6px 12px; cursor:pointer;}
+            button.icon-btn:hover { background-color: #e8e8e8; }
+
+            label.icon-btn { display: inline-block; font-size: 24px; cursor:pointer;}
+
+            .user-msg { background-color:white; padding:12px; margin-bottom:8px; border-radius=8px;}
+            .bot-msg { background-color: #f7f7f8; padding: 12px; margin-bottom:8px; border-radius:8px;}
+
+            /* Creates a circle with a colored top border */
+            .spinner {
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #3498db;
+                border-radius: 50%;
+                width: 20px;
+                height: 20px;
+                animation: spin 1s linear infinite;
+            }
+
+            /* defines the rotation animation */
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+
+        </style>
+
+    </head>
+    <body>
+        <div id='toolbar'>
+            <label for='open-pdf' class='icon-btn'>&#128194;</label>
+            <input type='file' id='open-pdf' accept='.pdf' style='display:none;'>
+
+            <button id='prev' class='icon-btn' disabled>&#9664;</button>
+            <span><span id='page-num'></span> / <span id='page-count'></span></span>
+            <button id='next' class='icon-btn' disabled>&#9654;</button>
+            <span>
+                <button id='zoom-out' class='icon-btn' disabled>&#8722;</button>
+
+                <button id='zoom-in' class='icon-btn' disabled>&#43;</button>
+            </span>
+            <button id='settings-btn' class='icon-btn'>&#9967;</button>
+        </div>
+
+        <div id='api-key-container' style='display: none;'>
+            <input type='password' id='api-key' placeholder='Enter API key'>
+            <button id='save-key' class='icon-btn'>&check;</button>
+            <button id='close-key' class='icon-btn'>&cross;</button>
+            <button id='remove-key' class='icon-btn'>Remove</button>
+        </div>
+
+
+        <main id='main-container'>
+
+            <div id='pdf-container'>
+                <!-- the wrapper ensures canvas and text layer locked / aligned together for accurate selection-->
+                <div id='page-wrapper'>
+                    <canvas id='pdf-canvas'></canvas>
+                    <div id='text-layer' class='textLayer'></div>
+                </div>
+            </div>
+            <!-- textLayer: a pdfjs class that handles text positioning, scaling, and overlay on canvas for selection/search -->
+
+            <div id='chat-container'>
+
+                <button id='toggle-sidebar'>&raquo;</button>
+
+                <div id='tab-buttons'>
+                    <button id='chat-tab' class='active'>Chat</button>
+                    <button id='notes-tab'>Notes</button>
+                </div>
+
+                <div id='chat-content'>
+                    <div id='msgs'></div>
+                    <div id='loading-spinner' style='display:none';>
+                        <div class='spinner'></div>
+                    </div>
+                    <!-- outer div controls visibility, inner is actual spinner -->
+
+
+                    <div id='input-wrapper'>
+                        <textarea id='chat-input' placeholder='Ask anything (Shift + Enter to add selected text from PDF)'></textarea>
+                        <button id='send-msg'>&#9654;</button>
+                    </div>
+                </div>
+
+                <div id='notes-content' style='display:none;'>
+                    <div id='notes-list'></div>
+                    <textarea id='note-input' placeholder="Type notes here. Click outside to save or Shift + Enter..."></textarea>
+                    <button id='download-notes'>Download All</button>
+
+                </div>
+            </div>
+
+        </div>
+
+        </main>
+
+
+        <script>
+            // the worker runs heavy processing in separate thread (to keep page responsive)
+            // tell pdfjs where worker file is
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+            let doc = null;
+            let pnum = 1;
+            let scale = 1.5;
+
+            // load saved api key
+            const savedKey = localStorage.getItem('apiKey');
+            if (savedKey) {
+                // alert('Loaded saved API key!');
+                console.log('Loaded saved API key!');
+            } else {
+                alert('Use settings to insert API key to use chat!')
+            }
+
+            function disableButtons(disabled) {
+                const buttons = ['prev', 'next', 'zoom-in', 'zoom-out'];
+                for (const id of buttons) {
+                    document.getElementById(id).disabled = disabled;
+                }
+            }
+
+            async function renderPage(num, scale) {
+                disableButtons(true); // disable buttons while rendering
+
+                const page = await doc.getPage(num); // extracts all the text from the page along with positioning information for each character/word.
+                const viewport = page.getViewport({scale: scale}); // get page dims and make it 1.5x bigger
+
+                // 1. set dimensions on Wrapper
+                const wrapper = document.getElementById('page-wrapper');
+                wrapper.style.width = Math.floor(viewport.width) + 'px';
+                wrapper.style.height = Math.floor(viewport.height) + 'px';
+
+                // 2. set dimensions on Canvas
+                const canvas = document.getElementById('pdf-canvas');
+                const ctx = canvas.getContext('2d'); // context is our toolkit - we give it instructions to draw
+                canvas.height=viewport.height; canvas.width=viewport.width; // set canvas size to match it
+
+                // 3. Render Canvas
+                await page.render({canvasContext:ctx, viewport:viewport}).promise; // render the page.. ctx (toolkit to draw) and viewport(what size)
+
+                // 4. Set CSS variable for Text Layer (required by pdf.js CSS)
+                // It must be set on the container that holds the textLayer
+                wrapper.style.setProperty('--scale-factor', viewport.scale);
+
+                // 5. Render Text Layer 
+                const textDiv = document.getElementById('text-layer');
+                textDiv.innerHTML = ''; // clear prev text
+
+                const text = await page.getTextContent();
+
+                await pdfjsLib.renderTextLayer({ textContentSource: text, container: textDiv, viewport: viewport }); // render text layer
+                document.getElementById('page-num').innerHTML = num; // update page-num
+                disableButtons(false); // enable them when done
+
+            }
+
+            // Navigation buttons
+
+            function nextPage() {
+                if (pnum < doc.numPages) {
+                    pnum = pnum + 1;
+                    renderPage(pnum, scale);
+                }
+            }
+
+            function prevPage() {
+                if (pnum > 1) {
+                    pnum = pnum - 1;
+                    renderPage(pnum, scale);
+                }
+            }
+
+            function zoomIn() {
+                if (scale < 4.0) {
+                    scale = scale + 0.25;
+                    renderPage(pnum, scale);
+                }
+            }
+
+            function zoomOut() {
+                if (scale > 0.35) {
+                    scale = scale - 0.25;
+                    renderPage(pnum, scale);
+                }
+            }
+
+            document.getElementById('next').addEventListener('click', nextPage);
+            document.getElementById('prev').addEventListener('click', prevPage);
+            document.getElementById('zoom-in').addEventListener('click', zoomIn);
+            document.getElementById('zoom-out').addEventListener('click', zoomOut);
+
+
+            let currentFileName = null; // we'll need it later to save notes
+            // Open file
+            document.getElementById('open-pdf').addEventListener('change', function(e){
+                const file = e.target.files[0];
+                currentFileName = file.name;
+
+                const fileReader = new FileReader(); // browser api - reads file from user's computer
+                fileReader.onload = async function() {
+                    const typedarray = new Uint8Array(this.result);
+                    doc = await pdfjsLib.getDocument(typedarray).promise;
+                    console.log('pdf loaded!!!');
+                    pnum=1; // reset to page 1
+                    document.getElementById('page-count').innerHTML = doc.numPages;
+                    await renderPage(1, scale);
+                }
+                fileReader.readAsArrayBuffer(file);
+            });
+
+            // this.result: file data in raw binary
+            // UintArray8: wraps it as an array of unsigned 8-bit integers (bytes) - the format PDF.js expects
+
+
+            // Send selection to input area
+            document.addEventListener('keydown', function(e){
+                if (e.shiftKey && e.key == 'Enter') {
+                    const selection = window.getSelection().toString();
+                    if (selection) {
+                        document.getElementById('chat-input').value += '""""' + selection + '""""';
+
+                        const chatInput = document.getElementById('chat-input');
+                        chatInput.focus(); //Puts the cursor inside the textarea
+                        chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length); 
+                    }
+                }
+            });
+
+            function addShiftEnterSubmit(textareaId, submitFunction) {
+                document.getElementById(textareaId).addEventListener('keydown', function (e) {
+                    textarea = document.getElementById(textareaId);
+                    const textContent = textarea.value.trim();
+                    if (textContent) {
+                        if (e.shiftKey && e.key == 'Enter') {
+                            e.preventDefault();
+                            submitFunction();
+                        }
+                    }
+                });
+            }
+
+            addShiftEnterSubmit('chat-input', sendMessage);
+            addShiftEnterSubmit('note-input', saveNote);
+
+            document.addEventListener('keydown', function(e) {
+                // arrow keys for page navigation
+                if (e.key == 'ArrowLeft') { document.getElementById('prev').click(); }
+                else if (e.key == 'ArrowRight') { document.getElementById('next').click();}
+
+                // Shift + Plus/Minus for zoom
+                if (e.shiftKey && (e.key === '+' || e.key === '=')) {
+                    document.getElementById('zoom-in').click();
+                } else if (e.shiftKey && (e.key === '-' || e.key === '_')) {
+                    document.getElementById('zoom-out').click();
+                }
+            });
+
+
+            // show / hide api key input
+            const apiDiv = document.getElementById('api-key-container');
+            document.getElementById('settings-btn').addEventListener('click', function () {
+                if (apiDiv.style.display == 'none') { apiDiv.style.display = 'block'; }
+                else { apiDiv.style.display = 'none';}
+            });
+
+            // save api key
+            document.getElementById('save-key').addEventListener('click', function () {
+                const keyInput = document.getElementById('api-key');
+                localStorage.setItem('apiKey', keyInput.value);
+                keyInput.value = '';
+                alert('Key saved!');
+            });
+
+            // close api-key div
+            document.getElementById('close-key').addEventListener('click', function () { apiDiv.style.display = 'none'; });
+
+            // Remove api-key from local storage
+            document.getElementById('remove-key').addEventListener('click', function () {
+                if (confirm('Are you sure you want to clear your API key?')){
+                    localStorage.removeItem('apiKey');
+                    alert('API key cleared!');
+                }
+            });
+
+
+            // Add messages
+            function updateMessages(msg, role) {
+                const msgs = document.getElementById('msgs');
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `${role}-msg`;
+                msgDiv.innerHTML = `
+                <span>${msg}</span>
+                <button class='icon-btn' onclick='deleteMessage(this)'>x</button>
+                `;
+                msgs.appendChild(msgDiv);
+                msgs.scrollTop = msgs.scrollHeight;
+            }
+
+            function deleteMessage(btn) { btn.parentElement.remove(); }
+
+            // Chat Functions
+
+            // Send message
+            async function sendMessage() {
+                const chatInput = document.getElementById('chat-input');
+                const userMsg = chatInput.value;
+                chatInput.value = '';
+                updateMessages(userMsg, 'user');
+                document.getElementById('loading-spinner').style.display = 'block';
+                const botMsg = await getResponse(userMsg);
+                document.getElementById('loading-spinner').style.display = 'none';
+                if (botMsg) { updateMessages(botMsg, 'bot'); }
+            }
+
+            document.getElementById('send-msg').addEventListener('click', sendMessage);
+
+
+            function configOptions(apiKey, msg) {
+                return {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            {role: 'system', content: 'You are a helpful assistant'},
+                            {role: 'user', content: msg}
+                        ],
+                        model: 'deepseek-chat', max_tokens: 4096, temperature: 1
+                    })
+                };
+            }
+
+
+            async function getResponse(userMsg) {
+                const api_key = localStorage.getItem('apiKey');
+                if (!api_key){ alert('Please enter api key first!'); return; }
+
+                const url = 'https://api.deepseek.com/chat/completions';
+                try {
+                    const response = await fetch(url, configOptions(api_key, userMsg));
+                    if (!response.ok){ 
+                        throw new Error('API error: ' + response.status); 
+                    }
+                    const data = await response.json(); // response JSON string to JS object
+                    return data.choices[0].message.content;
+                } catch (error){ 
+                    alert(error);
+                    const msgs = document.getElementById('msgs');
+                    document.getElementById('chat-input').value = msgs.lastElementChild.textContent;
+                    msgs.lastElementChild.remove();
+                    return;
+                }
+
+            }
+
+            // Notes interface
+            function showChat() {
+                document.getElementById('chat-content').style.display = 'block';
+                document.getElementById('notes-content').style.display = 'none';
+                document.getElementById('chat-tab').classList.add('active');
+                document.getElementById('notes-tab').classList.remove('active');
+            }
+
+            function showNotes() {
+                document.getElementById('chat-content').style.display = 'none';
+                document.getElementById('notes-content').style.display = 'block';
+                document.getElementById('notes-tab').classList.add('active');
+                document.getElementById('chat-tab').classList.remove('active');
+            }
+
+            document.getElementById('chat-tab').addEventListener('click', showChat);
+            document.getElementById('notes-tab').addEventListener('click', showNotes);
+
+
+            let currentEditNote = null;
+            function saveNote(){
+                const notesArea = document.getElementById('notes-list');
+                const textArea = document.getElementById('note-input');
+
+                const textContent = textArea.value.trim();
+                if (!textContent) {
+                    currentEditNote = null; // cancel edit if active
+                    textArea.value = ''; // clear any leftover spaces
+                    textArea.style.height = 'auto'; //reset size
+                    return; 
+                }
+                if (currentEditNote) {
+                    currentEditNote.querySelector('span').textContent = textArea.value;
+                    currentEditNote = null; // reset
+                }
+                else{
+                    // create new note Div
+                    const noteDiv = document.createElement('div');
+                    noteDiv.innerHTML = `
+                    <span>${textArea.value}</span>
+                    <button class='icon-btn' onclick="editNote(this)">&#9998;</button>
+                    <button class='icon-btn' onclick="deleteNote(this)">&cross;</button>
+                    `;
+                    notesArea.appendChild(noteDiv);
+                }
+                textArea.value = '';
+                textArea.style.height = 'auto'; //reset size
+            }
+
+            // auto-save on blur: when step away
+            document.getElementById('note-input').addEventListener('blur', saveNote);
+
+            function deleteNote(btn) { btn.parentElement.remove(); }
+
+            function editNote(btn) {
+                const noteDiv = btn.parentElement;
+                const noteText = noteDiv.querySelector('span').textContent;
+                document.getElementById('note-input').value = noteText; // put it in textarea
+                currentEditNote = noteDiv; // remember which note we're editing
+            }
+
+            // saving notes to device
+            // 1. Create the data - Package your notes into a format (like JSON or plain text)
+            // 2. Create a Blob - A Blob is a "file-like object" that exists in the browser's memory. It holds your data.
+            // 3. Create a download URL - Generate a special URL that points to this Blob
+            // 4. Trigger a download - Create an invisible link (an <a> tag) with this URL and programmatically click it. This prompts the browser to download the file.
+            // 5. Clean up - Remove the temporary URL from memory
+            // Think of it like: You're creating a temporary file in the browser, then tricking the browser into downloading it as if it came from a server.
+
+            function downloadNotes() {
+                const notesDiv = document.querySelectorAll('#notes-list div');
+                const notesArray = [];
+                for (const ndiv of notesDiv){
+                    const span = ndiv.querySelector('span');
+                    if (span) {
+                        notesArray.push(span.textContent.trim());
+                    }
+                    
+                }
+                const txtStr = notesArray.join('\n');
+                const blob = new Blob([txtStr], {type:'text/plain'});
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url; a.download = currentFileName + '_notes.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            document.getElementById('download-notes').addEventListener('click', downloadNotes);
+
+
+            // toggle sidebar
+            let sidebarVisible = true;
+            document.getElementById('toggle-sidebar').addEventListener('click', function () {
+                const sidebar = document.getElementById('chat-container');
+                const btn = document.getElementById('toggle-sidebar');
+
+                if (sidebarVisible) {
+                    sidebar.style.width = '0'; sidebar.style.padding = '0';
+                    btn.innerHTML = '&laquo;'; // change to rt arrow
+                }
+                else{
+                    sidebar.style.width = '300px'; sidebar.style.padding = '15px';
+                    btn.innerHTML = '&raquo;'; // change to lt arrow
+                }
+                sidebarVisible = !sidebarVisible;
+            });
+
+            // autoexpand text area
+            function autoExpandTextarea(e) {
+                const element = e.target;
+                element.style.height = 'auto';
+                element.style.height = element.scrollHeight + 'px';
+            }
+
+            document.getElementById('chat-input').addEventListener('input', autoExpandTextarea);
+            document.getElementById('note-input').addEventListener('input', autoExpandTextarea);
+
+
+        </script>
+    </body>
+</html>
