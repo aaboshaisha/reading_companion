@@ -17,19 +17,18 @@
             #pdf-container { position: relative; flex:1; display:flex; justify-content:center; padding:20px;}
             #text-layer { position: absolute; left:0; top:0; }
             #main-container { display: flex; min-height: 100vh; }
-            #chat-container { width: 300px; background-color:white; border-left: 1px solid #d0d0d0; padding: 15px; }
+            #chat-container { position: relative; width: 300px; background-color:white; border-left: 1px solid #d0d0d0; padding: 15px; }
             #msgs {
-                max-height: 400px;
-                overflow-y: auto; 
-                background-color: transparent;
-                border: none;
+                max-height: 400px; overflow-y: auto; 
+                background-color: transparent; border: none;
             }
 
 
             #notes-list div {
                 position: relative;
                 background-color: #f7f7f8; 
-                padding: 12px; margin-bottom: 8px; border-radius: 8px;
+                padding: 12px; margin-bottom: 10px; border-radius: 8px;
+                max-height: 400px; overflow-y: auto;
             }
 
             /* positions buttons differently */
@@ -51,7 +50,19 @@
 
             ##download-notes:hover { background-color: #f0f0f0;}
 
+            #toggle-sidebar {
+                position: absolute;
+                left: -15px;  /* Position 15px outside the left border */
+                top: 50%;  /* Position at middle of sidebar height */
+                transform: translateY(-50%);  /* Shift up by half button's height to center it */
+                z-index: 10;  /* Display above other elements e.g. pdf canvas */
+                background-color: white;
+                border: 1px solid #d0d0d0; border-radius: 4px;
+                padding: 8px 4px; cursor: pointer; 
+            }
 
+            #toggle-sidebar:hover { background-color: #f0f0f0;}
+            
             .user-msg, .bot-msg { position: relative; }
             .user-msg button, .bot-msg button, #notes-list div button {
                 position: absolute;
@@ -152,6 +163,8 @@
             </div>
 
             <div id='chat-container'>
+
+                <button id='toggle-sidebar'>&laquo;</button>
 
                 <div id='api-key-container' style='margin-top:10px; margin-bottom:10px; display: none;'>
                     <input type='text' id='api-key' placeholder='Enter API key'>
@@ -480,6 +493,24 @@
             }
 
             document.getElementById('download-notes').addEventListener('click', downloadNotes);
+
+
+            // toggle sidebar
+            let sidebarVisible = true;
+            document.getElementById('toggle-sidebar').addEventListener('click', function () {
+                const sidebar = document.getElementById('chat-container');
+                const btn = document.getElementById('toggle-sidebar');
+
+                if (sidebarVisible) {
+                    sidebar.style.width = '0'; sidebar.style.padding = '0';
+                    btn.innerHTML = '&raquo;'; // change to rt arrow
+                }
+                else{
+                    sidebar.style.width = '300px'; sidebar.style.padding = '15px';
+                    btn.innerHTML = '&laquo;'; // change to lt arrow
+                }
+                sidebarVisible = !sidebarVisible;
+            });
 
 
 
