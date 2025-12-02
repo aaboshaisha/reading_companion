@@ -177,7 +177,7 @@
 
                 <button id='zoom-in' class='icon-btn' disabled>&#43;</button>
             </span>
-            <button id='settings-btn' class='icon-btn'>&#9881;</button>
+            <button id='settings-btn' class='icon-btn'>&#9967;</button>
         </div>
 
         <div id='api-key-container' style='display: none;'>
@@ -217,14 +217,14 @@
 
 
                     <div id='input-wrapper'>
-                        <textarea id='chat-input' placeholder='Ask anything (Shift + Enter to add selection)'></textarea>
+                        <textarea id='chat-input' placeholder='Ask anything (Shift + Enter to add selected text from PDF)'></textarea>
                         <button id='send-msg'>&#9654;</button>
                     </div>
                 </div>
 
                 <div id='notes-content' style='display:none;'>
                     <div id='notes-list'></div>
-                    <textarea id='note-input' placeholder="Type your notes here..."></textarea>
+                    <textarea id='note-input' placeholder="Type notes here. Click outside to save.."></textarea>
                     <button id='download-notes'>Download All</button>
 
                 </div>
@@ -249,6 +249,8 @@
             if (savedKey) {
                 // alert('Loaded saved API key!');
                 console.log('Loaded saved API key!');
+            } else {
+                alert('Use settings to insert API key to use chat!')
             }
 
             function disableButtons(disabled) {
@@ -501,6 +503,13 @@
                 const notesArea = document.getElementById('notes-list');
                 const textArea = document.getElementById('note-input');
 
+                const textContent = textArea.value.trim();
+                if (!textContent) {
+                    currentEditNote = null; // cancel edit if active
+                    textArea.value = ''; // clear any leftover spaces
+                    textArea.style.height = 'auto'; //reset size
+                    return; 
+                }
                 if (currentEditNote) {
                     currentEditNote.querySelector('span').textContent = textArea.value;
                     currentEditNote = null; // reset
@@ -516,6 +525,7 @@
                     notesArea.appendChild(noteDiv);
                 }
                 textArea.value = '';
+                textArea.style.height = 'auto'; //reset size
             }
 
             // auto-save on blur: when step away
