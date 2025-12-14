@@ -1,7 +1,8 @@
 .DS_Store
 .ipynb_checkpoints/
 pdfjs-5.4.394-dist/
-sample.pdf
+*.pdf
 .sesskey
 __pycache__/
-app.py
+*.py
+*.ipynb
