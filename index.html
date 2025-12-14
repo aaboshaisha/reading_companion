@@ -188,19 +188,18 @@
         </div>
 
 
+        <!-- page-wrapper: the wrapper ensures canvas and text layer locked / aligned together for accurate selection-->
+        <!-- textLayer: a pdfjs class that handles text positioning, scaling, and overlay on canvas for selection/search -->
         <main id='main-container'>
 
             <div id='pdf-container'>
-                <!-- the wrapper ensures canvas and text layer locked / aligned together for accurate selection-->
                 <div id='page-wrapper'>
                     <canvas id='pdf-canvas'></canvas>
                     <div id='text-layer' class='textLayer'></div>
                 </div>
             </div>
-            <!-- textLayer: a pdfjs class that handles text positioning, scaling, and overlay on canvas for selection/search -->
 
             <div id='chat-container'>
-
                 <button id='toggle-sidebar'>&raquo;</button>
 
                 <div id='tab-buttons'>
@@ -214,7 +213,6 @@
                         <div class='spinner'></div>
                     </div>
                     <!-- outer div controls visibility, inner is actual spinner -->
-
 
                     <div id='input-wrapper'>
                         <textarea id='chat-input' placeholder='Ask anything (Shift + Enter to add selected text from PDF)'></textarea>
@@ -574,7 +572,7 @@
                     if (span) {
                         notesArray.push(span.textContent.trim());
                     }
-                    
+
                 }
                 const txtStr = notesArray.join('\n');
                 const blob = new Blob([txtStr], {type:'text/plain'});
@@ -594,14 +592,17 @@
             document.getElementById('toggle-sidebar').addEventListener('click', function () {
                 const sidebar = document.getElementById('chat-container');
                 const btn = document.getElementById('toggle-sidebar');
+                const sendBtn = document.getElementById('send-msg');
 
                 if (sidebarVisible) {
                     sidebar.style.width = '0'; sidebar.style.padding = '0';
                     btn.innerHTML = '&laquo;'; // change to rt arrow
+                    sendBtn.style.display = 'none';
                 }
                 else{
                     sidebar.style.width = '300px'; sidebar.style.padding = '15px';
                     btn.innerHTML = '&raquo;'; // change to lt arrow
+                    sendBtn.style.display = 'block';
                 }
                 sidebarVisible = !sidebarVisible;
             });
