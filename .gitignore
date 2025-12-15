@@ -6,3 +6,7 @@ pdfjs-5.4.394-dist/
 __pycache__/
 *.ipynb
 fast_app.html
+.env
+app.py
+main.py
+slop_app.py
