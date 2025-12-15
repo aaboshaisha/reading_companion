@@ -4,6 +4,5 @@ pdfjs-5.4.394-dist/
 *.pdf
 .sesskey
 __pycache__/
-*.py
 *.ipynb
 fast_app.html
