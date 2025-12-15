@@ -2,8 +2,12 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from openai import OpenAI
 from pydantic import BaseModel
+from dotenv import load_dotenv
+import os
 
-client = OpenAI(api_key="sk-b73395fb85304e7f8abd390a5c20f145", base_url="https://api.deepseek.com")
+load_dotenv()
+
+client = OpenAI(api_key=os.getenv('DEEPSEEK_API_KEY'), base_url="https://api.deepseek.com")
 
 system_instructions = """
 Always be brief, use the fewest sentences possible, do not add extra context, examples, or elaboration, do not restate the question, explain ideas by directly linking cause and effect, and stop once the core logic is stated.
