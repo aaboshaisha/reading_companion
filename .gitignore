@@ -6,3 +6,4 @@ pdfjs-5.4.394-dist/
 __pycache__/
 *.py
 *.ipynb
+fast_app.html

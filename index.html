@@ -294,34 +294,11 @@
             }
 
             // Navigation buttons
-
-            function nextPage() {
-                if (pnum < doc.numPages) {
-                    pnum = pnum + 1;
-                    renderPage(pnum, scale);
-                }
-            }
-
-            function prevPage() {
-                if (pnum > 1) {
-                    pnum = pnum - 1;
-                    renderPage(pnum, scale);
-                }
-            }
-
-            function zoomIn() {
-                if (scale < 4.0) {
-                    scale = scale + 0.25;
-                    renderPage(pnum, scale);
-                }
-            }
-
-            function zoomOut() {
-                if (scale > 0.35) {
-                    scale = scale - 0.25;
-                    renderPage(pnum, scale);
-                }
-            }
+            function nextPage() { if (pnum < doc.numPages) renderPage(++pnum, scale); }
+            function prevPage() { if (pnum > 1) renderPage(--pnum, scale); }
+            function zoomIn() { if (scale < 4.0) renderPage(pnum, scale += 0.25); }
+            function zoomOut() { if (scale > 0.35) renderPage(pnum, scale -= 0.25); }
+            
 
             document.getElementById('next').addEventListener('click', nextPage);
             document.getElementById('prev').addEventListener('click', prevPage);
@@ -467,7 +444,7 @@
                             {role: 'system', content: 'You are a helpful assistant'},
                             {role: 'user', content: msg}
                         ],
-                        model: 'deepseek-chat', max_tokens: 4096, temperature: 1
+                        model: 'deepseek-chat', max_tokens: 4096
                     })
                 };
             }
