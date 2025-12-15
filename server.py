@@ -54,6 +54,5 @@ def ask(q: Query, request:Request):
     if len(sessions[memory_id]) > max_messages:
         sessions[memory_id] = [sessions[memory_id][0]] + sessions[memory_id][-(max_messages-1):] # system + 10 messages
 
-    print(sessions[memory_id])
     return {'response': response} 
 
