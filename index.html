@@ -43,7 +43,23 @@
 
             #main-container { display: flex; min-height: 100vh; }
             #pdf-container { position: relative; flex:1; display:flex; justify-content:center; padding:20px; overflow: auto; }
-            #chat-container { position: relative; width: 300px; background-color:white; border-left: 1px solid #d0d0d0; padding: 15px; }
+            
+            #chat-container { 
+                position: relative; 
+                width: 300px; 
+                background-color:white; 
+                border-left: 1px solid #d0d0d0; 
+                padding: 15px; 
+                overflow: hidden;
+                transition: width 0.3s ease, padding 0.3s ease, border 0.3s ease;
+            }
+            #chat-container.hidden {
+                width: 0;
+                padding: 0;
+                border-left: none;
+                overflow: hidden;
+            }
+            
             #msgs {
                 max-height: 400px; overflow-y: auto; 
                 background-color: transparent; border: none;
@@ -79,15 +95,18 @@
 
             #toggle-sidebar {
                 position: absolute;
-                left: -15px;  /* Position 15px outside the left border */
+                right: 315px;  /* Position just outside the sidebar */
                 top: 50%;  /* Position at middle of sidebar height */
                 transform: translateY(-50%);  /* Shift up by half button's height to center it */
                 z-index: 10;  /* Display above other elements e.g. pdf canvas */
                 background-color: white;
                 border: 1px solid #d0d0d0; border-radius: 4px;
-                padding: 8px 4px; cursor: pointer; 
+                padding: 8px 4px; cursor: pointer;
+                transition: right 0.3s ease;
             }
-
+            
+            #toggle-sidebar.sidebar-hidden { right: 0; }
+            
             #toggle-sidebar:hover { background-color: #f0f0f0;}
 
             .user-msg, .bot-msg { position: relative; }
@@ -199,8 +218,10 @@
                 </div>
             </div>
 
+            <button id='toggle-sidebar'>&raquo;</button>
+            
             <div id='chat-container'>
-                <button id='toggle-sidebar'>&raquo;</button>
+                
 
                 <div id='tab-buttons'>
                     <button id='chat-tab' class='active'>Chat</button>
@@ -458,7 +479,25 @@
             document.getElementById('chat-tab').addEventListener('click', showChat);
             document.getElementById('notes-tab').addEventListener('click', showNotes);
 
+            // toggle sidebar
+            let sidebarVisible = true;
+            document.getElementById('toggle-sidebar').addEventListener('click', function () {
+                const sidebar = document.getElementById('chat-container');
+                const btn = document.getElementById('toggle-sidebar');
 
+                if (sidebarVisible) {
+                    sidebar.classList.add('hidden');
+                    btn.classList.add('sidebar-hidden');
+                    btn.innerHTML = '&raquo;';
+                } else {
+                    sidebar.classList.remove('hidden');
+                    btn.classList.remove('sidebar-hidden');
+                    btn.innerHTML = '&laquo;';
+                }
+                sidebarVisible = !sidebarVisible;
+            });
+            
+            
             let currentEditNote = null;
             function saveNote(){
                 const notesArea = document.getElementById('notes-list');
@@ -531,26 +570,6 @@
 
             document.getElementById('download-notes').addEventListener('click', downloadNotes);
 
-
-            // toggle sidebar
-            let sidebarVisible = true;
-            document.getElementById('toggle-sidebar').addEventListener('click', function () {
-                const sidebar = document.getElementById('chat-container');
-                const btn = document.getElementById('toggle-sidebar');
-                const sendBtn = document.getElementById('send-msg');
-
-                if (sidebarVisible) {
-                    sidebar.style.width = '0'; sidebar.style.padding = '0';
-                    btn.innerHTML = '&laquo;'; // change to rt arrow
-                    sendBtn.style.display = 'none';
-                }
-                else{
-                    sidebar.style.width = '300px'; sidebar.style.padding = '15px';
-                    btn.innerHTML = '&raquo;'; // change to lt arrow
-                    sendBtn.style.display = 'block';
-                }
-                sidebarVisible = !sidebarVisible;
-            });
 
             // autoexpand text area
             function autoExpandTextarea(e) {
