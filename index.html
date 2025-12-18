@@ -137,12 +137,12 @@
                 background-color: transparent; border: none;
             }
 
-            
+
             #chat-content {
                 display: flex; flex-direction: column; height: 100%; 
                 flex: 1; min-height: 0; /*allows the flex child to shrink below its content size and enable scrolling*/
             }
-            
+
             #chat-input { position: relative; margin-bottom: 8px;
                           flex-shrink: 0; /* prevents input from shrinking */
                         }
@@ -221,10 +221,10 @@
             <button id='next' class='icon-btn' disabled>&#9654;</button>
             <span>
                 <button id='zoom-out' class='icon-btn' disabled>&#8722;</button>
-
                 <button id='zoom-in' class='icon-btn' disabled>&#43;</button>
             </span>
-            <button id='settings-btn' class='icon-btn'>&#9967;</button>
+            <button id='highlight-btn' class='icon-btn'>&#128397;</button>
+            <!-- <button id='settings-btn' class='icon-btn'>&#9967;</button> -->
         </div>
 
         <div id='api-key-container' style='display: none;'>
@@ -339,6 +339,7 @@
                 await pdfjsLib.renderTextLayer({ textContentSource: text, container: textDiv, viewport: viewport }); // render text layer
                 document.getElementById('page-num').innerHTML = num; // update page-num
                 disableButtons(false); // enable them when done
+                renderHighlights();
 
             }
 
@@ -419,6 +420,72 @@
                     document.getElementById('zoom-out').click();
                 }
             });
+
+
+            // Store highlights by page number
+            let highlightsByPage = {}; // {pageNum: [{left, top, width, height}, ...]}
+
+            function createHighlight() {
+                const selection = window.getSelection();
+                if (!selection.rangeCount) return;
+
+                const range = selection.getRangeAt(0);
+                const rects = range.getClientRects();
+
+                const pageWrapper = document.getElementById('page-wrapper');
+                const wrapperRect = pageWrapper.getBoundingClientRect();
+
+                // Initialize array for current page if needed
+                if (!highlightsByPage[pnum]) {
+                    highlightsByPage[pnum] = [];
+                }
+
+                // Store highlight data (relative to page, not screen)
+                for (let rect of rects) {
+                    const highlightData = {
+                        left: (rect.left - wrapperRect.left) / scale,
+                        top: (rect.top - wrapperRect.top) / scale,
+                        width: rect.width / scale,
+                        height: rect.height / scale
+                    };
+                    highlightsByPage[pnum].push(highlightData);
+                }
+
+                renderHighlights();
+                selection.removeAllRanges();
+            }
+
+            function renderHighlights() {
+                // Clear existing highlight divs
+                document.querySelectorAll('.pdf-highlight').forEach(h => h.remove());
+
+                // Render highlights for current page
+                const pageHighlights = highlightsByPage[pnum] || [];
+                const pageWrapper = document.getElementById('page-wrapper');
+
+                pageHighlights.forEach((data, index) => {
+                    const highlightDiv = document.createElement('div');
+                    highlightDiv.style.position = 'absolute';
+                    highlightDiv.style.left = (data.left * scale) + 'px';
+                    highlightDiv.style.top = (data.top * scale) + 'px';
+                    highlightDiv.style.width = (data.width * scale) + 'px';
+                    highlightDiv.style.height = (data.height * scale) + 'px';
+                    highlightDiv.style.backgroundColor = 'rgba(255, 255, 0, 0.4)';
+                    highlightDiv.style.pointerEvents = 'auto';
+                    highlightDiv.style.cursor = 'pointer';
+                    highlightDiv.className = 'pdf-highlight';
+
+                    // Click to remove
+                    highlightDiv.addEventListener('click', function() {
+                        highlightsByPage[pnum].splice(index, 1);
+                        renderHighlights();
+                    });
+
+                    pageWrapper.appendChild(highlightDiv);
+                });
+            }
+
+            document.getElementById('highlight-btn').addEventListener('click', createHighlight);
 
 
             // // show / hide api key input
