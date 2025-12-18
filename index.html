@@ -11,6 +11,7 @@
             body {
                 margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
                 background-color: #e8e8e8;
+                height: 100vh; display: flex; flex-direction: column; overflow: hidden;
             }
 
             #toolbar {
@@ -41,13 +42,12 @@
             }
 
 
-            #main-container { display: flex; min-height: 100vh; }
+            #main-container { display: flex; flex: 1; height: 100%; overflow: hidden; }
             #pdf-container { position: relative; flex:1; display:flex; justify-content:center; padding:20px; overflow: auto; }
             #sidebar { 
+                display: flex; flex-direction: column;
                 position: relative; 
-                width: 300px; 
-                min-width: 200px;
-                max-width: 600px;
+                width: 300px; min-width: 200px; max-width: 600px;
                 background-color:white; 
                 border-left: 1px solid #d0d0d0; 
                 padding: 15px; 
@@ -78,11 +78,6 @@
             #resize-handle:hover {
                 background-color: #d0d0d0;
             }
-            #msgs {
-                max-height: 400px; overflow-y: auto; 
-                background-color: transparent; border: none;
-            }
-
 
             #notes-list div {
                 position: relative;
@@ -136,7 +131,21 @@
             }
             .user-msg:hover button, .bot-msg:hover button, #notes-list div:hover button{ opacity: 1; }
 
-            #chat-input { position: relative; margin-bottom: 8px; }
+            #msgs {
+                flex: 1; /* takes all available space and scrolls when full */
+                overflow-y: auto; margin-bottom: 10px;
+                background-color: transparent; border: none;
+            }
+
+            
+            #chat-content {
+                display: flex; flex-direction: column; height: 100%; 
+                flex: 1; min-height: 0; /*allows the flex child to shrink below its content size and enable scrolling*/
+            }
+            
+            #chat-input { position: relative; margin-bottom: 8px;
+                          flex-shrink: 0; /* prevents input from shrinking */
+                        }
 
             #chat-textarea {
                 max-height: 200px; overflow-y: auto;
@@ -461,6 +470,7 @@
                 const chatInput = document.getElementById('chat-textarea');
                 const userMsg = chatInput.value;
                 chatInput.value = '';
+                chatInput.style.height = 'auto';
                 updateMessages(userMsg, 'user');
                 document.getElementById('loading-spinner').style.display = 'block';
                 const botMsg = await getResponse(userMsg);
