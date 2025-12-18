@@ -95,7 +95,7 @@
             #notes-list div button:first-of-type { right: 40px; }
             #notes-list div button:last-of-type { right: 4px; }
 
-            #note-input {
+            #notes-textarea {
                 max-height: 200px; overflow-y:auto;
                 width: 100%; padding: 10px; margin-bottom: 8px;
                 border: 1px solid #d0d0d0; border-radius: 8px;
@@ -136,9 +136,9 @@
             }
             .user-msg:hover button, .bot-msg:hover button, #notes-list div:hover button{ opacity: 1; }
 
-            #input-wrapper { position: relative; margin-bottom: 8px; }
+            #chat-input { position: relative; margin-bottom: 8px; }
 
-            #chat-input {
+            #chat-textarea {
                 max-height: 200px; overflow-y: auto;
                 width:100%; padding:10px 45px 10px 10px;
                 border: 1px solid #d0d0d0; border-radius: 8px;
@@ -148,14 +148,14 @@
             }
 
 
-            #send-msg {
+            #chat-submit-btn {
                 position: absolute;
                 right: 8px; bottom: 8px; width: 32px; height: 32px; 
                 color: white; background-color: black;
                 border: none; border-radius: 6px;
                 cursor: pointer; font-size: 16px;
             }
-            #send-msg:hover { background-color: #333; }
+            #chat-submit-btn:hover { background-color: #333; }
 
             #tab-buttons { display:flex; gap:5px; margin-bottom:15px;}
             #tab-buttons button {
@@ -255,15 +255,15 @@
                     </div>
                     <!-- outer div controls visibility, inner is actual spinner -->
 
-                    <div id='input-wrapper'>
-                        <textarea id='chat-input' placeholder='Ask anything (Shift + Enter to add selected text from PDF)'></textarea>
-                        <button id='send-msg'>&#9654;</button>
+                    <div id='chat-input'>
+                        <textarea id='chat-textarea' placeholder='Ask anything (Shift + Enter to add selected text from PDF)'></textarea>
+                        <button id='chat-submit-btn'>&#9654;</button>
                     </div>
                 </div>
 
                 <div id='notes-content' style='display:none;'>
                     <div id='notes-list'></div>
-                    <textarea id='note-input' placeholder="Type notes here. Click outside to save or Shift + Enter..."></textarea>
+                    <textarea id='notes-textarea' placeholder="Type notes here. Click outside to save or Shift + Enter..."></textarea>
                     <button id='download-notes'>Download All</button>
 
                 </div>
@@ -373,9 +373,9 @@
                 if (e.shiftKey && e.key == 'Enter') {
                     const selection = window.getSelection().toString();
                     if (selection) {
-                        document.getElementById('chat-input').value += '""""' + selection + '""""';
+                        document.getElementById('chat-textarea').value += '""""' + selection + '""""';
 
-                        const chatInput = document.getElementById('chat-input');
+                        const chatInput = document.getElementById('chat-textarea');
                         chatInput.focus(); //Puts the cursor inside the textarea
                         chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length); 
                     }
@@ -395,8 +395,8 @@
                 });
             }
 
-            addShiftEnterSubmit('chat-input', sendMessage);
-            addShiftEnterSubmit('note-input', saveNote);
+            addShiftEnterSubmit('chat-textarea', sendMessage);
+            addShiftEnterSubmit('notes-textarea', saveNote);
 
             document.addEventListener('keydown', function(e) {
                 // arrow keys for page navigation
@@ -458,7 +458,7 @@
 
             // Send message
             async function sendMessage() {
-                const chatInput = document.getElementById('chat-input');
+                const chatInput = document.getElementById('chat-textarea');
                 const userMsg = chatInput.value;
                 chatInput.value = '';
                 updateMessages(userMsg, 'user');
@@ -468,7 +468,7 @@
                 if (botMsg) { updateMessages(botMsg, 'bot'); }
             }
 
-            document.getElementById('send-msg').addEventListener('click', sendMessage);
+            document.getElementById('chat-submit-btn').addEventListener('click', sendMessage);
 
             async function getResponse(userMsg) {
                 const response = await fetch('/ask', {
@@ -565,7 +565,7 @@
             let currentEditNote = null;
             function saveNote(){
                 const notesArea = document.getElementById('notes-list');
-                const textArea = document.getElementById('note-input');
+                const textArea = document.getElementById('notes-textarea');
 
                 const textContent = textArea.value.trim();
                 if (!textContent) {
@@ -593,14 +593,14 @@
             }
 
             // auto-save on blur: when step away
-            document.getElementById('note-input').addEventListener('blur', saveNote);
+            document.getElementById('notes-textarea').addEventListener('blur', saveNote);
 
             function deleteNote(btn) { btn.parentElement.remove(); }
 
             function editNote(btn) {
                 const noteDiv = btn.parentElement;
                 const noteText = noteDiv.querySelector('span').textContent;
-                document.getElementById('note-input').value = noteText; // put it in textarea
+                document.getElementById('notes-textarea').value = noteText; // put it in textarea
                 currentEditNote = noteDiv; // remember which note we're editing
             }
 
@@ -642,8 +642,8 @@
                 element.style.height = element.scrollHeight + 'px';
             }
 
-            document.getElementById('chat-input').addEventListener('input', autoExpandTextarea);
-            document.getElementById('note-input').addEventListener('input', autoExpandTextarea);
+            document.getElementById('chat-textarea').addEventListener('input', autoExpandTextarea);
+            document.getElementById('notes-textarea').addEventListener('input', autoExpandTextarea);
 
 
         </script>
