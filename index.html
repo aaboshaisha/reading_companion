@@ -43,10 +43,11 @@
 
             #main-container { display: flex; min-height: 100vh; }
             #pdf-container { position: relative; flex:1; display:flex; justify-content:center; padding:20px; overflow: auto; }
-            
             #chat-container { 
                 position: relative; 
                 width: 300px; 
+                min-width: 200px;
+                max-width: 600px;
                 background-color:white; 
                 border-left: 1px solid #d0d0d0; 
                 padding: 15px; 
@@ -54,12 +55,29 @@
                 transition: width 0.3s ease, padding 0.3s ease, border 0.3s ease;
             }
             #chat-container.hidden {
-                width: 0;
+                width: 0 !important;
+                min-width: 0;
                 padding: 0;
                 border-left: none;
                 overflow: hidden;
             }
-            
+            #chat-container.resizing {
+                transition: none;
+            }
+
+            #resize-handle {
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 5px;
+                cursor: ew-resize;
+                background-color: transparent;
+                z-index: 10;
+            }
+            #resize-handle:hover {
+                background-color: #d0d0d0;
+            }
             #msgs {
                 max-height: 400px; overflow-y: auto; 
                 background-color: transparent; border: none;
@@ -91,22 +109,23 @@
                 color:black; background-color: transparent;
             }
 
-            ##download-notes:hover { background-color: #f0f0f0;}
+            #download-notes:hover { background-color: #f0f0f0;}
 
             #toggle-sidebar {
                 position: absolute;
-                right: 315px;  /* Position just outside the sidebar */
-                top: 50%;  /* Position at middle of sidebar height */
-                transform: translateY(-50%);  /* Shift up by half button's height to center it */
-                z-index: 10;  /* Display above other elements e.g. pdf canvas */
+                right: calc(var(--sidebar-width, 300px) + 15px);
+                top: 50%;
+                transform: translateY(-50%);
+                z-index: 10;
                 background-color: white;
                 border: 1px solid #d0d0d0; border-radius: 4px;
                 padding: 8px 4px; cursor: pointer;
                 transition: right 0.3s ease;
             }
-            
-            #toggle-sidebar.sidebar-hidden { right: 0; }
-            
+            #toggle-sidebar.sidebar-hidden {
+                right: 0;
+            }
+
             #toggle-sidebar:hover { background-color: #f0f0f0;}
 
             .user-msg, .bot-msg { position: relative; }
@@ -161,7 +180,7 @@
 
             label.icon-btn { display: inline-block; font-size: 24px; cursor:pointer;}
 
-            .user-msg { background-color:white; padding:12px; margin-bottom:8px; border-radius=8px;}
+            .user-msg { background-color:white; padding:12px; margin-bottom:8px; border-radius:8px;}
             .bot-msg { background-color: #f7f7f8; padding: 12px; margin-bottom:8px; border-radius:8px;}
 
             /* Creates a circle with a colored top border */
@@ -218,10 +237,11 @@
                 </div>
             </div>
 
-            <button id='toggle-sidebar'>&raquo;</button>
-            
+            <button id='toggle-sidebar'>&laquo;</button>
+
             <div id='chat-container'>
-                
+                <div id='resize-handle'></div>
+
 
                 <div id='tab-buttons'>
                     <button id='chat-tab' class='active'>Chat</button>
@@ -249,9 +269,8 @@
                 </div>
             </div>
 
-        </div>
-
         </main>
+
 
 
         <script>
@@ -319,7 +338,7 @@
             function prevPage() { if (pnum > 1) renderPage(--pnum, scale); }
             function zoomIn() { if (scale < 4.0) renderPage(pnum, scale += 0.25); }
             function zoomOut() { if (scale > 0.35) renderPage(pnum, scale -= 0.25); }
-            
+
 
             document.getElementById('next').addEventListener('click', nextPage);
             document.getElementById('prev').addEventListener('click', prevPage);
@@ -393,31 +412,31 @@
             });
 
 
-            // show / hide api key input
-            const apiDiv = document.getElementById('api-key-container');
-            document.getElementById('settings-btn').addEventListener('click', function () {
-                if (apiDiv.style.display == 'none') { apiDiv.style.display = 'block'; }
-                else { apiDiv.style.display = 'none';}
-            });
+            // // show / hide api key input
+            // const apiDiv = document.getElementById('api-key-container');
+            // document.getElementById('settings-btn').addEventListener('click', function () {
+            //     if (apiDiv.style.display == 'none') { apiDiv.style.display = 'block'; }
+            //     else { apiDiv.style.display = 'none';}
+            // });
 
-            // save api key
-            document.getElementById('save-key').addEventListener('click', function () {
-                const keyInput = document.getElementById('api-key');
-                localStorage.setItem('apiKey', keyInput.value);
-                keyInput.value = '';
-                alert('Key saved!');
-            });
+            // // save api key
+            // document.getElementById('save-key').addEventListener('click', function () {
+            //     const keyInput = document.getElementById('api-key');
+            //     localStorage.setItem('apiKey', keyInput.value);
+            //     keyInput.value = '';
+            //     alert('Key saved!');
+            // });
 
-            // close api-key div
-            document.getElementById('close-key').addEventListener('click', function () { apiDiv.style.display = 'none'; });
+            // // close api-key div
+            // document.getElementById('close-key').addEventListener('click', function () { apiDiv.style.display = 'none'; });
 
-            // Remove api-key from local storage
-            document.getElementById('remove-key').addEventListener('click', function () {
-                if (confirm('Are you sure you want to clear your API key?')){
-                    localStorage.removeItem('apiKey');
-                    alert('API key cleared!');
-                }
-            });
+            // // Remove api-key from local storage
+            // document.getElementById('remove-key').addEventListener('click', function () {
+            //     if (confirm('Are you sure you want to clear your API key?')){
+            //         localStorage.removeItem('apiKey');
+            //         alert('API key cleared!');
+            //     }
+            // });
 
 
             // Add messages
@@ -481,6 +500,15 @@
 
             // toggle sidebar
             let sidebarVisible = true;
+            let sidebarWidth = 300;
+
+            function updateToggleButtonPosition() {
+                const btn = document.getElementById('toggle-sidebar');
+                document.documentElement.style.setProperty('--sidebar-width', sidebarWidth + 'px');
+            }
+
+            updateToggleButtonPosition();
+
             document.getElementById('toggle-sidebar').addEventListener('click', function () {
                 const sidebar = document.getElementById('chat-container');
                 const btn = document.getElementById('toggle-sidebar');
@@ -496,8 +524,44 @@
                 }
                 sidebarVisible = !sidebarVisible;
             });
-            
-            
+
+
+            // Resize sidebar
+            let isResizing = false;
+            const resizeHandle = document.getElementById('resize-handle');
+            const sidebar = document.getElementById('chat-container');
+
+            resizeHandle.addEventListener('mousedown', function(e) {
+                isResizing = true;
+                sidebar.classList.add('resizing');
+                document.body.style.cursor = 'ew-resize';
+                document.body.style.userSelect = 'none';
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isResizing) return;
+
+                const containerRect = document.getElementById('main-container').getBoundingClientRect();
+                const newWidth = containerRect.right - e.clientX;
+
+                // Respect min and max width
+                if (newWidth >= 200 && newWidth <= 600) {
+                    sidebarWidth = newWidth;
+                    sidebar.style.width = newWidth + 'px';
+                    updateToggleButtonPosition();
+                }
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (isResizing) {
+                    isResizing = false;
+                    sidebar.classList.remove('resizing');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
+
+
             let currentEditNote = null;
             function saveNote(){
                 const notesArea = document.getElementById('notes-list');
