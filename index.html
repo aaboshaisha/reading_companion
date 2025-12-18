@@ -43,7 +43,7 @@
 
             #main-container { display: flex; min-height: 100vh; }
             #pdf-container { position: relative; flex:1; display:flex; justify-content:center; padding:20px; overflow: auto; }
-            #chat-container { 
+            #sidebar { 
                 position: relative; 
                 width: 300px; 
                 min-width: 200px;
@@ -54,14 +54,14 @@
                 overflow: hidden;
                 transition: width 0.3s ease, padding 0.3s ease, border 0.3s ease;
             }
-            #chat-container.hidden {
+            #sidebar.hidden {
                 width: 0 !important;
                 min-width: 0;
                 padding: 0;
                 border-left: none;
                 overflow: hidden;
             }
-            #chat-container.resizing {
+            #sidebar.resizing {
                 transition: none;
             }
 
@@ -239,7 +239,7 @@
 
             <button id='toggle-sidebar'>&laquo;</button>
 
-            <div id='chat-container'>
+            <div id='sidebar'>
                 <div id='resize-handle'></div>
 
 
@@ -510,7 +510,7 @@
             updateToggleButtonPosition();
 
             document.getElementById('toggle-sidebar').addEventListener('click', function () {
-                const sidebar = document.getElementById('chat-container');
+                const sidebar = document.getElementById('sidebar');
                 const btn = document.getElementById('toggle-sidebar');
 
                 if (sidebarVisible) {
@@ -529,7 +529,7 @@
             // Resize sidebar
             let isResizing = false;
             const resizeHandle = document.getElementById('resize-handle');
-            const sidebar = document.getElementById('chat-container');
+            const sidebar = document.getElementById('sidebar');
 
             resizeHandle.addEventListener('mousedown', function(e) {
                 isResizing = true;
