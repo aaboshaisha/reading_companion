@@ -369,6 +369,7 @@
                     console.log('pdf loaded!!!');
                     pnum=1; // reset to page 1
                     document.getElementById('page-count').innerHTML = doc.numPages;
+                    loadHighlights();
                     await renderPage(1, scale);
                 }
                 fileReader.readAsArrayBuffer(file);
@@ -422,6 +423,20 @@
             });
 
 
+            function saveHighlights() {
+                if (!currentFileName) return;
+                const key = `highlights_${currentFileName}`;
+                localStorage.setItem(key, JSON.stringify(highlightsByPage));
+            }
+
+            function loadHighlights() {
+                if (!currentFileName) return;
+                const key = `highlights_${currentFileName}`;
+                const saved = localStorage.getItem(key);
+                if (saved) { highlightsByPage = JSON.parse(saved); } 
+                else { highlightsByPage = {}; }
+            }
+
             // Store highlights by page number
             // Structure: {1: [{left, top, width, height}, ...], 2: [...], ...}
             let highlightsByPage = {};
@@ -455,11 +470,14 @@
                     highlightsByPage[pnum] = [];
                 }
 
+                // Track if we removed any highlights (for toggle behavior)
+                let removed = false;
+
                 // Loop through each rectangle (one per line of selected text)
                 for (let rect of rects) {
                     // Convert screen coordinates to page-relative coordinates
                     // and divide by scale so highlights work when zooming
-                    const highlightData = {
+                    const selectionData = {
                         // rect.left is pixels from screen edge
                         // wrapperRect.left is pixels from screen edge to page start
                         // Subtract to get distance from page's left edge
@@ -470,9 +488,48 @@
                         height: rect.height / scale
                     };
 
-                    // Add this highlight rectangle to the current page's array
-                    highlightsByPage[pnum].push(highlightData);
+                    // Check if this selection overlaps with any existing highlights
+                    // Filter removes highlights that overlap with the selection
+                    highlightsByPage[pnum] = highlightsByPage[pnum].filter(h => {
+                        // Check if rectangles overlap using standard rectangle collision detection
+                        // Two rectangles DON'T overlap if:
+                        // - selection is completely to the left of highlight, OR
+                        // - selection is completely to the right of highlight, OR
+                        // - selection is completely above highlight, OR
+                        // - selection is completely below highlight
+                        // We negate this (!) to check if they DO overlap
+                        const overlaps = !(
+                            selectionData.left + selectionData.width < h.left ||
+                            selectionData.left > h.left + h.width ||
+                            selectionData.top + selectionData.height < h.top ||
+                            selectionData.top > h.top + h.height
+                        );
+
+                        if (overlaps) {
+                            removed = true;  // Mark that we removed something
+                            return false;    // Remove this highlight from array
+                        }
+                        return true;  // Keep this highlight
+                    });
                 }
+
+                // If we didn't remove any highlights, add new ones (toggle behavior)
+                if (!removed) {
+                    for (let rect of rects) {
+                        const highlightData = {
+                            left: (rect.left - wrapperRect.left) / scale,
+                            top: (rect.top - wrapperRect.top) / scale,
+                            width: rect.width / scale,
+                            height: rect.height / scale
+                        };
+
+                        // Add this highlight rectangle to the current page's array
+                        highlightsByPage[pnum].push(highlightData);
+                    }
+                }
+
+                // Save to localStorage so highlights persist
+                saveHighlights();
 
                 // Draw all the yellow highlight boxes on screen
                 renderHighlights();
@@ -501,12 +558,6 @@
                     highlightDiv.style.pointerEvents = 'auto';
                     highlightDiv.style.cursor = 'pointer';
                     highlightDiv.className = 'pdf-highlight';
-
-                    // Click to remove
-                    highlightDiv.addEventListener('click', function() {
-                        highlightsByPage[pnum].splice(index, 1);
-                        renderHighlights();
-                    });
 
                     pageWrapper.appendChild(highlightDiv);
                 });
