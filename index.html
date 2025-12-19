@@ -423,37 +423,64 @@
 
 
             // Store highlights by page number
-            let highlightsByPage = {}; // {pageNum: [{left, top, width, height}, ...]}
+            // Structure: {1: [{left, top, width, height}, ...], 2: [...], ...}
+            let highlightsByPage = {};
 
             function createHighlight() {
+                // Get whatever text the user has highlighted on the page
                 const selection = window.getSelection();
+
+                // If nothing is selected, exit early
                 if (!selection.rangeCount) return;
 
+                // Get the Range object - contains start/end positions and character offsets
+                // Example: {startContainer: textNode, startOffset: 5, endContainer: textNode, endOffset: 15}
                 const range = selection.getRangeAt(0);
+
+                // Convert Range to actual pixel rectangles on screen
+                // Returns MULTIPLE rectangles (one per line if selection spans multiple lines)
+                // Example: [{left: 150, top: 200, width: 80, height: 20}, {...}]
                 const rects = range.getClientRects();
 
+                // Get the PDF page container element
                 const pageWrapper = document.getElementById('page-wrapper');
+
+                // Get ONE rectangle representing the page container's position on screen
+                // We need this as our reference point to convert screen coords to page coords
                 const wrapperRect = pageWrapper.getBoundingClientRect();
 
-                // Initialize array for current page if needed
+                // If this page doesn't have a highlights array yet, create an empty one
+                // pnum is the current page number variable
                 if (!highlightsByPage[pnum]) {
                     highlightsByPage[pnum] = [];
                 }
 
-                // Store highlight data (relative to page, not screen)
+                // Loop through each rectangle (one per line of selected text)
                 for (let rect of rects) {
+                    // Convert screen coordinates to page-relative coordinates
+                    // and divide by scale so highlights work when zooming
                     const highlightData = {
+                        // rect.left is pixels from screen edge
+                        // wrapperRect.left is pixels from screen edge to page start
+                        // Subtract to get distance from page's left edge
+                        // Divide by scale to store original size (independent of zoom level)
                         left: (rect.left - wrapperRect.left) / scale,
                         top: (rect.top - wrapperRect.top) / scale,
                         width: rect.width / scale,
                         height: rect.height / scale
                     };
+
+                    // Add this highlight rectangle to the current page's array
                     highlightsByPage[pnum].push(highlightData);
                 }
 
+                // Draw all the yellow highlight boxes on screen
                 renderHighlights();
+
+                // Clear the blue text selection so it doesn't stay highlighted
                 selection.removeAllRanges();
             }
+
 
             function renderHighlights() {
                 // Clear existing highlight divs
@@ -470,7 +497,7 @@
                     highlightDiv.style.top = (data.top * scale) + 'px';
                     highlightDiv.style.width = (data.width * scale) + 'px';
                     highlightDiv.style.height = (data.height * scale) + 'px';
-                    highlightDiv.style.backgroundColor = 'rgba(10, 132, 255, 0.15)';
+                    highlightDiv.style.backgroundColor = 'rgba(255, 245, 157, 0.40)';
                     highlightDiv.style.pointerEvents = 'auto';
                     highlightDiv.style.cursor = 'pointer';
                     highlightDiv.className = 'pdf-highlight';
