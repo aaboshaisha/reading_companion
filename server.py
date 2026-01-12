@@ -94,6 +94,13 @@ def make_excerpt(text, max_chars=200):
         return text
     return text[:max_chars].rsplit(" ", 1)[0] + "..."
 
+
+def clean_markdown(text: str) -> str:
+    text = text.replace("\r\n", "\n").strip() # Normalize line endings
+    text = re.sub(r"<[^>]+>", "", text) # Prevent raw HTML injection from the model
+    return text
+
+
 @app.post('/ask')
 def ask(q: Query, request: Request):
     corpus = corpus_cache[request.session['current_pdf']]
@@ -122,5 +129,5 @@ def ask(q: Query, request: Request):
         sessions[sid] = [sessions[sid][0]] + sessions[sid][-(max_messages-1):]
 
     sources = [{"page": d["page"], "excerpt": make_excerpt(d["text"])} for d in context]
-    return { "response": response, "sources": sources }
+    return { "response": clean_markdown(response), "sources": sources }
 

@@ -7,6 +7,9 @@
         <!-- helper class to render text content onto text layer div -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
 
+        <!-- marked (Markdown → HTML) and DOMPurify (XSS protection) -->
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
         <style>
             body {
                 margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -631,7 +634,7 @@
                 const msgDiv = document.createElement('div');
                 msgDiv.className = `${role}-msg`;
                 msgDiv.innerHTML = `
-                <span>${msg}</span>
+                <span>${marked.parse(msg)}</span>
                 <button class='icon-btn' onclick='deleteMessage(this)'>x</button>
                 `;
                 msgs.appendChild(msgDiv);
@@ -657,16 +660,6 @@
 
             document.getElementById('chat-submit-btn').addEventListener('click', sendMessage);
 
-            // async function getResponse(userMsg) {
-            //     const response = await fetch('/ask', {
-            //         method: 'POST',
-            //         headers: {'Content-Type': 'application/json'},
-            //         body: JSON.stringify({query: userMsg})
-            //     });
-            //     const data = await response.json();
-            //     return data.response;
-            // }
-            
             async function getResponse(userMsg) {
                 const response = await fetch('/ask', {
                     method: 'POST',
@@ -674,32 +667,23 @@
                     body: JSON.stringify({query: userMsg})
                 });
                 const data = await response.json();
-
-                // format response with sources
-                let formattedResponse = data.response;
+            
+                let formattedResponse = marked.parse(data.response);
+                
                 if (data.sources && data.sources.length > 0) {
-                    formattedResponse += `
-                        <details class="sources">
-                            <summary><small><b>Sources (${data.sources.length})</b></small></summary>
-                            <small>
-                    `;
-                
+                    let sourcesHtml = '<details class="sources"><summary><small><b>Sources (' + data.sources.length + ')</b></small></summary><small>';
+                    
                     data.sources.forEach((src, i) => {
-                        formattedResponse += `
-                            <div class="source">
-                                [${i + 1}] Page ${src.page}: 
-                                "${src.excerpt}"
-                            </div>
-                        `;
+                        sourcesHtml += '<div class="source">[' + (i + 1) + '] Page ' + src.page + ': "' + src.excerpt + '"</div>';
                     });
-                
-                    formattedResponse += `
-                            </small>
-                        </details>
-                    `;
+                    
+                    sourcesHtml += '</small></details>';
+                    formattedResponse += sourcesHtml;
                 }
+                
                 return formattedResponse;
             }
+
             
             // Notes interface
             function showChat() {
