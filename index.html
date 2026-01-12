@@ -356,22 +356,54 @@
             document.getElementById('zoom-out').addEventListener('click', zoomOut);
 
 
+            // extract text and save to work with in python -- NEW
+            async function extractText(doc){
+                if (!doc){
+                    console.log('No document provided');
+                    return null;
+                }
+                console.log('Extracting text from', doc.numPages, 'pages');
+                let allText = [];
+                for (let i = 1; i <= doc.numPages; i++){
+                    console.log('Processing page', i);
+                    const page = await doc.getPage(i);
+                    const textContent = await page.getTextContent();
+                    // textContent.items is an array of text objects
+                    // Join them to get the actual text string
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    console.log('Page', i, 'text length:', pageText.length);
+                    allText.push({page:i, text:pageText})
+                }
+                console.log('Total pages extracted:', allText.length);
+                return allText;
+            }
+            
+
+            
             let currentFileName = null; // we'll need it later to save notes
             // Open file
             document.getElementById('open-pdf').addEventListener('change', function(e){
                 const file = e.target.files[0];
                 currentFileName = file.name;
-
-                const fileReader = new FileReader(); // browser api - reads file from user's computer
+                const fileReader = new FileReader();
                 fileReader.onload = async function() {
                     const typedarray = new Uint8Array(this.result);
                     doc = await pdfjsLib.getDocument(typedarray).promise;
                     console.log('pdf loaded!!!');
-                    pnum=1; // reset to page 1
+                    pnum=1;
                     document.getElementById('page-count').innerHTML = doc.numPages;
                     loadHighlights();
                     await renderPage(1, scale);
-                }
+                    
+                    const allText = await extractText(doc);
+                    if (allText) {
+                        const response = await fetch('/upload-pdf-text', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({filename: currentFileName, data: allText})
+                        });
+                    }
+                };
                 fileReader.readAsArrayBuffer(file);
             });
 
@@ -625,6 +657,16 @@
 
             document.getElementById('chat-submit-btn').addEventListener('click', sendMessage);
 
+            // async function getResponse(userMsg) {
+            //     const response = await fetch('/ask', {
+            //         method: 'POST',
+            //         headers: {'Content-Type': 'application/json'},
+            //         body: JSON.stringify({query: userMsg})
+            //     });
+            //     const data = await response.json();
+            //     return data.response;
+            // }
+            
             async function getResponse(userMsg) {
                 const response = await fetch('/ask', {
                     method: 'POST',
@@ -632,9 +674,33 @@
                     body: JSON.stringify({query: userMsg})
                 });
                 const data = await response.json();
-                return data.response;
-            }
 
+                // format response with sources
+                let formattedResponse = data.response;
+                if (data.sources && data.sources.length > 0) {
+                    formattedResponse += `
+                        <details class="sources">
+                            <summary><small><b>Sources (${data.sources.length})</b></small></summary>
+                            <small>
+                    `;
+                
+                    data.sources.forEach((src, i) => {
+                        formattedResponse += `
+                            <div class="source">
+                                [${i + 1}] Page ${src.page}: 
+                                "${src.excerpt}"
+                            </div>
+                        `;
+                    });
+                
+                    formattedResponse += `
+                            </small>
+                        </details>
+                    `;
+                }
+                return formattedResponse;
+            }
+            
             // Notes interface
             function showChat() {
                 document.getElementById('chat-content').style.display = 'block';
