@@ -10,3 +10,5 @@ fast_app.html
 app.py
 main.py
 slop_app.py
+*.pkl
+*.json
