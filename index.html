@@ -82,6 +82,12 @@
                 background-color: #d0d0d0;
             }
 
+            #notes-list {
+                flex: 1;
+                overflow-y: auto;
+                margin-bottom: 10px;
+            }
+                    
             #notes-list div {
                 position: relative;
                 background-color: #f7f7f8; 
@@ -141,8 +147,8 @@
             }
 
 
-            #chat-content {
-                display: flex; flex-direction: column; height: 100%; 
+            #chat-content, #notes-content {
+                display: flex; flex-direction: column; height: 100%;
                 flex: 1; min-height: 0; /*allows the flex child to shrink below its content size and enable scrolling*/
             }
 
@@ -687,7 +693,7 @@
             
             // Notes interface
             function showChat() {
-                document.getElementById('chat-content').style.display = 'block';
+                document.getElementById('chat-content').style.display = 'flex';
                 document.getElementById('notes-content').style.display = 'none';
                 document.getElementById('chat-tab').classList.add('active');
                 document.getElementById('notes-tab').classList.remove('active');
@@ -695,7 +701,7 @@
 
             function showNotes() {
                 document.getElementById('chat-content').style.display = 'none';
-                document.getElementById('notes-content').style.display = 'block';
+                document.getElementById('notes-content').style.display = 'flex';
                 document.getElementById('notes-tab').classList.add('active');
                 document.getElementById('chat-tab').classList.remove('active');
             }
