@@ -155,11 +155,29 @@ def clean_markdown(text: str) -> str:
     text = re.sub(r"<[^>]+>", "", text) # Prevent raw HTML injection from the model
     return text
 
+def generate_prompt(query, context):
+    return f"""Answer the question or provide information based on the provided documents.
+
+    If not enough information is available to give a good answer, say so but give as good of an answer as you can while citing the sources you have.
+    
+    Query: {query}
+    
+    Documents:
+    {context}
+    
+    Instructions:
+    - Provide a comprehensive answer that addresses the query
+    - Cite sources using [1], [2], etc. format when referencing information
+    - If sources disagree, mention the different viewpoints
+    - If the answer isn't in the documents, say "I don't have enough information"
+    - Be direct and informative
+    
+    Answer:""" 
+
 
 @app.post('/ask')
 def ask(q: Query, request: Request):
     corpus = corpus_cache[request.session['current_pdf']]
-    print(corpus._fields)
     context = retrieve(q.query, corpus)
     
     if 'session_id' not in request.session:
@@ -168,22 +186,24 @@ def ask(q: Query, request: Request):
     sid = request.session['session_id']
     
     if sid not in sessions:
-        sessions[sid] = [{'role': 'system', 'content': system_prompt}]
+        sessions[sid] = []
     
+    # Build context string
+    ctx = "\n\n".join([f"[Source {i+1}, Page {d['page']}]\n{d['text']}" for i, d in enumerate(context)])
+    
+    # Create messages: history + current query with context
+    messages = sessions[sid] + [{'role': 'user', 'content': generate_prompt(q.query, ctx)}]
+    
+    resp = client.chat.completions.create(model="deepseek-chat", messages=messages, temperature=0)
+    response = resp.choices[0].message.content
+    
+    # Store only the query and response in history (not the full prompt with context)
     sessions[sid].append({'role': 'user', 'content': q.query})
-    
-    ctx = "\n\n".join([f"[Source {i+1}, Page {d['page']}]\n{d['text']}" 
-                       for i, d in enumerate(context)])
-    prompt = f"Answer using this PDF context:\n\n{ctx}\n\nQuestion: {q.query}"
-    
-    response = get_response(prompt, sessions[sid])
-    
     sessions[sid].append({'role': 'assistant', 'content': response})
     
     # Trim memory
     if len(sessions[sid]) > max_messages:
-        sessions[sid] = [sessions[sid][0]] + sessions[sid][-(max_messages-1):]
-
+        sessions[sid] = sessions[sid][-max_messages:]
+    
     sources = [{"page": d["page"], "excerpt": make_excerpt(d["text"])} for d in context]
-    return { "response": clean_markdown(response), "sources": sources }
-
+    return {"response": clean_markdown(response), "sources": sources}
