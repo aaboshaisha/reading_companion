@@ -3,19 +3,28 @@ from fastapi.responses import FileResponse
 from openai import OpenAI
 from pydantic import BaseModel
 from dotenv import load_dotenv
-import os, uuid
 from starlette.middleware.sessions import SessionMiddleware
-import os, re, json, pickle, numpy as np
-from collections import namedtuple
+import json, math, os, re, string, json, pickle, uuid, numpy as np
+from collections import namedtuple, defaultdict, Counter
 from sentence_transformers import SentenceTransformer
+from nltk.stem import PorterStemmer
 
 load_dotenv()
 
-Document = namedtuple('Document', 'chunks pages embs')
-client = OpenAI(api_key=os.getenv('DEEPSEEK_API_KEY'), base_url="https://api.deepseek.com")
+deepseek_api_key = os.getenv('DEEPSEEK_API_KEY')
+base_url = "https://api.deepseek.com"
+
+Document = namedtuple('Document', 'chunks pages embs index docmap doc_lens')
+client = OpenAI(api_key=deepseek_api_key, base_url=base_url)
 model = SentenceTransformer('all-MiniLM-L6-v2')
+stemmer = PorterStemmer()
+
 corpus_cache = {} # temporary in-memory save
 
+with open('stopwords.txt') as f:
+    stopwords = set(f.read().splitlines()) # O(1) lookup
+
+# --------------------------------------------------------
 def chunk_document(doc, size=10, overlap=2):
     """Yields (text, page) tuples using a sliding window over sentences."""
     for d in doc:
@@ -23,33 +32,79 @@ def chunk_document(doc, size=10, overlap=2):
         for i in range(0, len(sents) - size + 1, size - overlap):
             yield ' '.join(sents[i: i+size]), d['page']
 
-def load_or_create_corpus(path:str) -> Document:
-    """Returns cached Document or computes and saves new embeddings."""
+def tokenize(text:str) -> list[str]:
+    """Tokenize, lowercase, stem, remove punctuation and stopwords from text."""
+    table = str.maketrans('', '', string.punctuation)
+    words = text.lower().translate(table).split()
+    return [stemmer.stem(word) for word in words if word not in stopwords]
+
+def load_or_build_index(path:str) -> Document:
+    """Build search index: chunks, embeddings, and BM25 data."""
     cache_path = path.replace('.json', '.pkl')
-
+    
     if os.path.exists(cache_path) and os.path.getsize(cache_path) > 0:
-        with open(cache_path, 'rb') as f: return pickle.load(f)
+        with open(cache_path, 'rb') as f:
+            return pickle.load(f)
+            
+    with open(path) as f:
+        doc_data = json.load(f)
 
-    with open(path) as f: doc_data = json.load(f)
-
-    chunks, pages = zip(*chunk_document(doc_data))
+    chunks, pages, index, docmap, doc_lens = [], [], defaultdict(dict), {}, []
+    
+    for cid, (txt, pg) in enumerate(chunk_document(doc_data)):
+        chunks.append(txt); pages.append(pg)
+        docmap[cid] = {'text':txt, 'page':pg}
+        tokens = tokenize(txt)
+        doc_lens.append(len(tokens))
+        
+        for token, tf in Counter(tokens).items():
+            index[token][cid] = tf 
     embeddings = model.encode(chunks)
-    corpus = Document(chunks, pages, embeddings)
+    return Document(chunks, pages, embeddings, index, docmap, doc_lens)
 
-    with open(cache_path, 'wb') as f: pickle.dump(corpus, f)
-    return corpus
-
-def cosine_similarity(query_emb, chunks_emb):
+def cosine_sim(query_emb, chunks_emb):
     query_norm = query_emb / np.linalg.norm(query_emb)
     chunks_norm = chunks_emb / np.linalg.norm(chunks_emb, axis=1, keepdims=True)
     return np.dot(chunks_norm, query_norm)
 
-def retrieve(query, corpus, k=5):
-    """Finds top k chunks using vectorized cosine similarity."""
+def bm25_score(query_tokens, doc_id, index, doc_lens, k1=1.5, b=0.75):
+    N = len(doc_lens) # total documents
+    avgdl = sum(doc_lens) / N # average doc length
+    score = 0 # accumulates scores of each token in that doc/chunk
+
+    for token in query_tokens:
+        if token not in index: continue
+
+        df = len(index[token]) # document frequency
+        idf = math.log((N - df + 0.5) / (df + 0.5) + 1)
+        tf = index[token].get(doc_id, 0) # get tf for this doc (if token in it)
+        dl = doc_lens[doc_id] # document length
+        score += idf * (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * dl / avgdl))
+    return score
+
+def scores_to_ranks(cid_score_pairs: list[tuple]) -> dict:
+    sorted_pairs = sorted(cid_score_pairs, key=lambda x: x[1], reverse=True)
+    return {cid: rank for rank, (cid, score) in enumerate(sorted_pairs)}
+
+def rrf_score(rank, k=60):
+    return 1 / (k + rank)
+
+
+def retrieve(query:str, index:Document, k:int=5) -> list[dict]:
+    """Retrieve top-k chunks using RRF fusion of semantic and BM25 rankings."""
+    query_tokens = tokenize(query)
+    bm25_scores= [(cid, bm25_score(query_tokens, cid, index.index, index.doc_lens)) for cid in index.docmap.keys()]
+
     query_emb = model.encode(query)
-    scores = cosine_similarity(query_emb, corpus.embs)
-    top_indices = np.argsort(scores)[-k:][::-1]
-    return [{'text': ''.join(corpus.chunks[i]), 'page':corpus.pages[i]} for i in top_indices]
+    semantic_scores = cosine_sim(query_emb, index.embs)
+    semantic_scores = [(cid, score) for cid, score in enumerate(semantic_scores.tolist())]
+
+    semantic_ranks, bm25_ranks = scores_to_ranks(semantic_scores), scores_to_ranks(bm25_scores)
+
+    combined_scores = sorted(((cid, rrf_score(semantic_ranks[cid]) + rrf_score(bm25_ranks[cid])) for cid in index.docmap.keys()), key=lambda x:x[1], reverse=True)
+
+    context = [index.docmap[i] for i, _ in  combined_scores[:k]]
+    return context    
 
 sessions = {} # storing memory for each user
 max_messages = 11 # system + 10
@@ -78,7 +133,7 @@ async def upload_pdf_text(data:dict, request: Request):
     with open(fpath, 'w') as f:
         json.dump(data['data'], f)
     
-    corpus = load_or_create_corpus(fpath)
+    corpus = load_or_build_index(fpath)
     corpus_cache[fname] = corpus
         
     request.session['current_pdf'] = fname
@@ -104,6 +159,7 @@ def clean_markdown(text: str) -> str:
 @app.post('/ask')
 def ask(q: Query, request: Request):
     corpus = corpus_cache[request.session['current_pdf']]
+    print(corpus._fields)
     context = retrieve(q.query, corpus)
     
     if 'session_id' not in request.session:
