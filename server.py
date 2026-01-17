@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from starlette.middleware.sessions import SessionMiddleware
 import json, math, os, re, string, json, pickle, uuid, numpy as np
 from collections import namedtuple, defaultdict, Counter
-from sentence_transformers import SentenceTransformer
 from nltk.stem import PorterStemmer
 
 load_dotenv()
@@ -14,9 +13,8 @@ load_dotenv()
 deepseek_api_key = os.getenv('DEEPSEEK_API_KEY')
 base_url = "https://api.deepseek.com"
 
-Document = namedtuple('Document', 'chunks pages embs index docmap doc_lens')
+Document = namedtuple('Document', 'chunks pages index docmap doc_lens')
 client = OpenAI(api_key=deepseek_api_key, base_url=base_url)
-model = SentenceTransformer('all-MiniLM-L6-v2')
 stemmer = PorterStemmer()
 
 corpus_cache = {} # temporary in-memory save
@@ -59,13 +57,7 @@ def load_or_build_index(path:str) -> Document:
         
         for token, tf in Counter(tokens).items():
             index[token][cid] = tf 
-    embeddings = model.encode(chunks)
-    return Document(chunks, pages, embeddings, index, docmap, doc_lens)
-
-def cosine_sim(query_emb, chunks_emb):
-    query_norm = query_emb / np.linalg.norm(query_emb)
-    chunks_norm = chunks_emb / np.linalg.norm(chunks_emb, axis=1, keepdims=True)
-    return np.dot(chunks_norm, query_norm)
+    return Document(chunks, pages, index, docmap, doc_lens)
 
 def bm25_score(query_tokens, doc_id, index, doc_lens, k1=1.5, b=0.75):
     N = len(doc_lens) # total documents
@@ -82,28 +74,12 @@ def bm25_score(query_tokens, doc_id, index, doc_lens, k1=1.5, b=0.75):
         score += idf * (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * dl / avgdl))
     return score
 
-def scores_to_ranks(cid_score_pairs: list[tuple]) -> dict:
-    sorted_pairs = sorted(cid_score_pairs, key=lambda x: x[1], reverse=True)
-    return {cid: rank for rank, (cid, score) in enumerate(sorted_pairs)}
-
-def rrf_score(rank, k=60):
-    return 1 / (k + rank)
-
 
 def retrieve(query:str, index:Document, k:int=5) -> list[dict]:
-    """Retrieve top-k chunks using RRF fusion of semantic and BM25 rankings."""
+    """Retrieve top-k chunks using BM25 rankings."""
     query_tokens = tokenize(query)
     bm25_scores= [(cid, bm25_score(query_tokens, cid, index.index, index.doc_lens)) for cid in index.docmap.keys()]
-
-    query_emb = model.encode(query)
-    semantic_scores = cosine_sim(query_emb, index.embs)
-    semantic_scores = [(cid, score) for cid, score in enumerate(semantic_scores.tolist())]
-
-    semantic_ranks, bm25_ranks = scores_to_ranks(semantic_scores), scores_to_ranks(bm25_scores)
-
-    combined_scores = sorted(((cid, rrf_score(semantic_ranks[cid]) + rrf_score(bm25_ranks[cid])) for cid in index.docmap.keys()), key=lambda x:x[1], reverse=True)
-
-    context = [index.docmap[i] for i, _ in  combined_scores[:k]]
+    context = [index.docmap[i] for i, _ in  sorted(bm25_scores, key=lambda x:x[1], reverse=True)[:k]]
     return context    
 
 sessions = {} # storing memory for each user
@@ -156,7 +132,7 @@ def clean_markdown(text: str) -> str:
     return text
 
 def generate_prompt(query, context):
-    return f"""Answer the question or provide information based on the provided documents.
+    return f"""Answer the question or provide information based on the provided sources.
 
     If not enough information is available to give a good answer, say so but give as good of an answer as you can while citing the sources you have.
     
@@ -166,11 +142,12 @@ def generate_prompt(query, context):
     {context}
     
     Instructions:
-    - Provide a comprehensive answer that addresses the query
+    - Provide a concise answer that addresses the query
     - Cite sources using [1], [2], etc. format when referencing information
     - If sources disagree, mention the different viewpoints
-    - If the answer isn't in the documents, say "I don't have enough information"
+    - If the answer isn't in the sources, say "I don't have enough information"
     - Be direct and informative
+    - Follow plain English language rules
     
     Answer:""" 
 
